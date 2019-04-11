@@ -19,8 +19,8 @@ cmake-build*/
 cppcheck/
 doc/html/
 doc/latex/
-src/Tools/version.cpp
-src/Tools/Documentation/strings.cpp
+src/aff3ct/Tools/version.cpp
+src/aff3ct/Tools/Documentation/strings.cpp
 test-regression-results/
 code_coverage_files/
 code_coverage_report/

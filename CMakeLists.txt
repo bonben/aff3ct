@@ -128,9 +128,9 @@ endif()
 
 # ------------------------------------------------------------------------------------------------------------- VERSION
 # Auto generate a header containing the last Git SHA1
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/version.cpp.in"
-               "${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/version.cpp" @ONLY)
-list(APPEND source_files "${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/version.cpp")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/version.cpp.in"
+               "${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/version.cpp" @ONLY)
+list(APPEND source_files "${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/version.cpp")
 
 # Auto generate cmake config version file to link with AFF3CT library (only if an AFF3CT library has been compiled)
 if (AFF3CT_COMPILE_STATIC_LIB OR AFF3CT_COMPILE_SHARED_LIB)
@@ -147,10 +147,10 @@ if(NOT AFF3CT_EXT_STRINGS)
     string(REPLACE "\n" "\\n"  AFF3CT_STRINGS "${AFF3CT_STRINGS}")
 
     # Auto generate a file containing the doc strings
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/Documentation/strings.cpp.in"
-                   "${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/Documentation/strings.cpp" @ONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/Documentation/strings.cpp.in"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/Documentation/strings.cpp" @ONLY)
 
-    list(APPEND source_files "${CMAKE_CURRENT_SOURCE_DIR}/src/Tools/Documentation/strings.cpp")
+    list(APPEND source_files "${CMAKE_CURRENT_SOURCE_DIR}/src/aff3ct/Tools/Documentation/strings.cpp")
 endif()
 
 # ------------------------------------------------------------------------------------------------------------ SHORTCUT
@@ -548,15 +548,15 @@ if (AFF3CT_COMPILE_SHARED_LIB OR AFF3CT_COMPILE_STATIC_LIB)
             COMPONENT library)
 
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/aff3ct
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}
             COMPONENT headers
             FILES_MATCHING PATTERN "*.h")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/aff3ct
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}
             COMPONENT headers
             FILES_MATCHING PATTERN "*.hpp")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/aff3ct
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}
             COMPONENT headers
             FILES_MATCHING PATTERN "*.hxx")
 
