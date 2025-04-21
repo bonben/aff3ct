@@ -58,8 +58,11 @@ const tools::Noise<>& Frozenbits_generator
 }
 
 void Frozenbits_generator
-::generate(std::vector<bool> &frozen_bits)
+::generate(std::vector<bool> &frozen_bits, int N_punctured)
 {
+	if (N_punctured == 0)
+		N_punctured = this->N;
+
 	if (frozen_bits.size() != (unsigned)N)
 	{
 		std::stringstream message;
@@ -72,8 +75,17 @@ void Frozenbits_generator
 
 	// init frozen_bits vector, true means frozen bits, false means information bits
 	std::fill(frozen_bits.begin(), frozen_bits.end(), true);
-	for (auto i = 0; i < K; i++)
-		frozen_bits[best_channels[i]] = false;
+	auto info_bits_placed = 0;
+	auto i = 0;
+	while (info_bits_placed < this->K)
+	{
+		if(best_channels[i] < (uint32_t)N_punctured) // choose best channels in interval [0 ; N]
+		{                                         // interval [0 ; N] are frozen
+			frozen_bits[best_channels[i]] = false;
+			info_bits_placed++;
+		}
+		i++;
+	}
 
 	if (!dump_channels_path.empty() && (!dump_channels_single_thread || this->master_thread_id == std::this_thread::get_id()))
 	{

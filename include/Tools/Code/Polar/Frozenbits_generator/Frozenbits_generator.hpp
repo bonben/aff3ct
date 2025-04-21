@@ -72,7 +72,7 @@ public:
 	 *
 	 * \param frozen_bits: output vector of frozen bits.
 	 */
-	void generate(std::vector<bool> &frozen_bits);
+	void generate(std::vector<bool> &frozen_bits, int N_punctured = 0);
 
 	/*!
 	 * \brief Gets the best channels (the most secured bits sorted by descending order).
