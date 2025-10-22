@@ -29,7 +29,8 @@ struct LDPC_matrix_handler
     enum class Matrix_format : int8_t
     {
         ALIST,
-        QC
+        QC,
+		CYCLIC
     };
 
     /*

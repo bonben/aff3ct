@@ -44,9 +44,8 @@ LDPC_matrix_handler ::get_matrix_format(std::ifstream& file)
 
     if (values.size() == 2) return Matrix_format::ALIST;
 
-    std::stringstream message;
-    message << "The given LDPC matrix file does not represent a known matrix type (ALIST, QC).";
-    throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+	else return Matrix_format::CYCLIC;
+
 }
 
 Sparse_matrix

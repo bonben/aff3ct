@@ -1,5 +1,8 @@
 #include <streampu.hpp>
 #include <utility>
+#include <string>
+#include <regex>
+
 
 #include "Factory/Module/Encoder/LDPC/Encoder_LDPC.hpp"
 #include "Module/Encoder/LDPC/DVBS2/Encoder_LDPC_DVBS2.hpp"
@@ -7,6 +10,7 @@
 #include "Module/Encoder/LDPC/From_H/Encoder_LDPC_from_H.hpp"
 #include "Module/Encoder/LDPC/From_IRA/Encoder_LDPC_from_IRA.hpp"
 #include "Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp"
+#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Tools/Documentation/documentation.h"
@@ -37,7 +41,7 @@ Encoder_LDPC ::get_description(cli::Argument_map_info& args) const
     auto p = this->get_prefix();
     const std::string class_name = "factory::Encoder_LDPC::";
 
-    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA");
+    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA", "LDPC_C");
 
     tools::add_arg(args, p, class_name + "p+h-path", cli::File(cli::openmode::read));
 
@@ -89,7 +93,7 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     auto p = this->get_prefix();
 
-    if (this->type == "LDPC") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    if (this->type == "LDPC" || this->type == "LDPC_C") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
     {
@@ -113,6 +117,25 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
         return new module::Encoder_LDPC_from_H<B>(this->K, this->N_cw, H, this->G_method, this->G_save_path, true);
     if (this->type == "LDPC_QC") return new module::Encoder_LDPC_from_QC<B>(this->K, this->N_cw, H);
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
+	if (this->type == "LDPC_C")
+	{
+		size_t lastDot = this->G_path.find_last_of('.');
+		std::string parsed_file = "";
+    	if (lastDot != std::string::npos) {
+        	parsed_file = this->G_path.substr(0, lastDot);
+    	}
+		std::regex numberRegex("\\d+");
+    	std::sregex_iterator iter(parsed_file.begin(), parsed_file.end(), numberRegex);
+    	std::sregex_iterator end;
+
+    	std::string Zc;
+    	while (iter != end)
+		{
+        	Zc = iter->str();
+        	++iter;
+    	}
+		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, this->N_cw, std::stoi(Zc), this->G_path.c_str());
+	}
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
