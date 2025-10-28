@@ -41,7 +41,7 @@ Encoder_LDPC ::get_description(cli::Argument_map_info& args) const
     auto p = this->get_prefix();
     const std::string class_name = "factory::Encoder_LDPC::";
 
-    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA", "LDPC_C");
+    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA", "LDPC_5G");
 
     tools::add_arg(args, p, class_name + "p+h-path", cli::File(cli::openmode::read));
 
@@ -93,7 +93,7 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     auto p = this->get_prefix();
 
-    if (this->type == "LDPC" || this->type == "LDPC_C") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    if (this->type == "LDPC" || this->type == "LDPC_5G") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
     {
@@ -117,7 +117,7 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
         return new module::Encoder_LDPC_from_H<B>(this->K, this->N_cw, H, this->G_method, this->G_save_path, true);
     if (this->type == "LDPC_QC") return new module::Encoder_LDPC_from_QC<B>(this->K, this->N_cw, H);
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
-	if (this->type == "LDPC_C")
+	if (this->type == "LDPC_5G")
 	{
 		size_t lastDot = this->G_path.find_last_of('.');
 		std::string parsed_file = "";
@@ -128,13 +128,26 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
     	std::sregex_iterator iter(parsed_file.begin(), parsed_file.end(), numberRegex);
     	std::sregex_iterator end;
 
-    	std::string Zc;
+    	int Zc;
+		auto bg = std::stoi(iter->str());
+		int K_ldpc = 0;
+		int N_ldpc = 0;
     	while (iter != end)
 		{
-        	Zc = iter->str();
+        	Zc = std::stoi(iter->str());
         	++iter;
     	}
-		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, this->N_cw, std::stoi(Zc), this->G_path.c_str());
+		if(bg == 1)
+		{
+			K_ldpc = 22 * Zc;
+			N_ldpc = 68 * Zc;
+		}
+		else
+		{
+			K_ldpc = 10 * Zc;
+			N_ldpc = 52 * Zc;
+		}
+		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, N_ldpc, Zc, this->G_path.c_str(), K_ldpc);
 	}
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);

@@ -22,6 +22,8 @@ class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
 {
 protected:
     std::vector<std::vector<B>> Rot;   /* Matrix for Faster Encoding, filled from G. */
+	const int K_ldpc;
+	std::vector<B> filled_input;
 
 
 public:
@@ -31,9 +33,10 @@ public:
 	 * \param K:         Number of information bits.
      * \param N:         Number of encoded bits.
 	 * \param Zc:        Lifting size.
-	 * \param file_name: File containing the parity check matrix.
+	 * \param file_name: File containing the parity check matrix
+	 * \param K_ldpc:    Number of information bits in base graph.
 	 */
-	LDPC_Encoder_Cyclic_Fast(const int K, const int N, const int Zc, const char* file_name);
+	LDPC_Encoder_Cyclic_Fast(const int K, const int N, const int Zc, const char* file_name, const int K_ldpc);
 
 	/*!
 	 * \brief Destructor.
@@ -52,7 +55,7 @@ protected:
 	 */
 	void _fill_Rot();
 	void _encode(const B *U_K, B *X_N, const size_t frame_id);
-	virtual std::vector<B> _CSRAA(const B * vect, const int beg);
+	virtual std::vector<B> _CSRAA(B * vect, const int beg);
 	virtual std::vector<B> _findItems(std::vector<B> v, int target);
 };
 }
