@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Module/Puncturer/Puncturer.hpp"
+#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
 
 namespace aff3ct
 {
@@ -17,11 +18,10 @@ template<typename B = int, typename Q = float>
 class Puncturer_5G : public Puncturer<B, Q>
 {
   protected:
-    const int Zc;
-	const int K_ldpc;
+    tools::base_graph_5G base_graph;
 
   public:
-    Puncturer_5G(const int& K, const int& N, const int& N_cw, const std::vector<bool>& pattern, const int& Zc, const int& K_ldpc);
+    Puncturer_5G(const int& K, const int& N, const int& N_cw, const std::vector<bool>& pattern);
     virtual ~Puncturer_5G() = default;
 
     virtual Puncturer_5G<B, Q>* clone() const;

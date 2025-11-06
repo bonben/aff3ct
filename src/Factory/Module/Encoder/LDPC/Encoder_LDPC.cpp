@@ -14,6 +14,8 @@
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Tools/Documentation/documentation.h"
+#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
+
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
@@ -119,35 +121,9 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
 	if (this->type == "LDPC_5G")
 	{
-		size_t lastDot = this->G_path.find_last_of('.');
-		std::string parsed_file = "";
-    	if (lastDot != std::string::npos) {
-        	parsed_file = this->G_path.substr(0, lastDot);
-    	}
-		std::regex numberRegex("\\d+");
-    	std::sregex_iterator iter(parsed_file.begin(), parsed_file.end(), numberRegex);
-    	std::sregex_iterator end;
-
-    	int Zc;
-		auto bg = std::stoi(iter->str());
-		int K_ldpc = 0;
-		int N_ldpc = 0;
-    	while (iter != end)
-		{
-        	Zc = std::stoi(iter->str());
-        	++iter;
-    	}
-		if(bg == 1)
-		{
-			K_ldpc = 22 * Zc;
-			N_ldpc = 68 * Zc;
-		}
-		else
-		{
-			K_ldpc = 10 * Zc;
-			N_ldpc = 52 * Zc;
-		}
-		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, N_ldpc, Zc, this->G_path.c_str(), K_ldpc);
+		auto base_graph = tools::build_5G_base_graph(this->K, 24);
+		std::cout << "Encoder Selected 5G Base Graph: BG" << base_graph.Bg << " with Zc = " << base_graph.Zc << " Base graph Kldpc = " << base_graph.Kldpc << " and Nldpc = " << base_graph.Nldpc << std::endl;
+		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, base_graph.Nldpc, base_graph.Zc, this->G_path.c_str(), base_graph.Kldpc);
 	}
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);

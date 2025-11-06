@@ -9,11 +9,12 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 template<typename B, typename Q>
-Puncturer_5G<B, Q>::Puncturer_5G(const int& K, const int& N, const int& N_cw, const std::vector<bool>& pattern, const int& Zc, const int& K_ldpc)
-  : Puncturer<B, Q>(K, N, N_cw), Zc(Zc), K_ldpc(K_ldpc)
+Puncturer_5G<B, Q>::Puncturer_5G(const int& K, const int& N, const int& N_cw, const std::vector<bool>& pattern)
+  : Puncturer<B, Q>(K, N, N_cw)
 {
     const std::string name = "Puncturer_LDPC_5G";
     this->set_name(name);
+	this->base_graph = tools::build_5G_base_graph(K, N);
     for (auto& t : this->tasks)
         t->set_replicability(true);
 }
@@ -33,11 +34,11 @@ Puncturer_5G<B, Q>::_puncture(const B* X_N1, B* X_N2, const size_t /*frame_id*/)
 {
     int k = 0;
 	int j = 0;
-	while (k < N)
+	while (k < this->N)
 	{
-		if (!(j % (N_cw - 2 * Zc) + 2 * Zc < K && K_ldpc <= j % (N_cw - 2 * Zc) + 2 * Zc))
+		if (!(j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc < this->base_graph.Kldpc && this->K <= j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc))
 		{
-			X_N2[k] = X_N1[j + 2 * Zc];
+			X_N2[k] = X_N1[j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc];
 			k++;
 		}
 		j++;
@@ -50,17 +51,17 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
 {
     int k = 0;
 	int j = 0;
-	while(k < N)
+	while(k < this->N)
 	{
-		if (!(j%(N_cw-2*Zc) + 2*Zc < K && K_ldpc <= j % (N_cw - 2 * Zc) + 2 * Zc))
+		if (!(j%(this->N_cw - 2*this->base_graph.Zc) + 2*this->base_graph.Zc < this->base_graph.Kldpc && this->K <= j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc))
 		{
-			Y_N2[j % (N - 2 * Zc) + 2 * Zc] = Y_N1[k];
+			Y_N2[j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc] = Y_N1[k];
 			k++;
 		}
 		j++;
 	}
-	std::memset(Y_N2, 0, sizeof(float)*2*Zc);
-	std::memset(Y_N2 + this->K_ldpc, 100, sizeof(float) * (this->K_ldpc - this->K));
+	std::memset(Y_N2, 0, sizeof(Q)*2*this->base_graph.Zc);
+	std::memset(Y_N2 + this->K, 100, sizeof(Q) * (this->base_graph.Kldpc - this->K));
 }
 
 // ==================================================================================== explicit template instantiation
