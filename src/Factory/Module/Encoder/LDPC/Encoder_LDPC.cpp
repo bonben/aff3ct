@@ -11,7 +11,7 @@
 #include "Module/Encoder/LDPC/From_IRA/Encoder_LDPC_from_IRA.hpp"
 #include "Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp"
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
-#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
+#include "Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Tools/Documentation/documentation.h"
 
@@ -122,9 +122,9 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
     {
         auto base_graph = tools::build_5G_base_graph(this->K, 24);
         std::cout << "Encoder Selected 5G Base Graph: BG" << base_graph.Bg << " with Zc = " << base_graph.Zc
-                  << " Base graph Kldpc = " << base_graph.Kldpc << " and Nldpc = " << base_graph.Nldpc << std::endl;
+                  << " Base graph K_LDPC = " << base_graph.K_LDPC << " and N_LDPC = " << base_graph.N_LDPC << std::endl;
         return new module::LDPC_Encoder_Cyclic_Fast<B>(
-          this->K, base_graph.Nldpc, base_graph.Zc, this->G_path.c_str(), base_graph.Kldpc);
+          this->K, base_graph.N_LDPC, base_graph.Zc, this->G_path.c_str(), base_graph.K_LDPC);
     }
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);

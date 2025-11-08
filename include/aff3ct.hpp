@@ -954,8 +954,8 @@
 #ifndef QC_HPP_
 #include <Tools/Code/LDPC/QC/QC.hpp>
 #endif
-#ifndef BASE_GRAPH_SELECTOR_5G_HPP_
-#include <Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp>
+#ifndef STD_5G_BASE_GRAPH_HPP_
+#include <Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp>
 #endif
 #ifndef DVBS2_CONSTANTS_16200_HPP_
 #include <Tools/Code/LDPC/Standard/DVBS2/DVBS2_constants_16200.hpp>

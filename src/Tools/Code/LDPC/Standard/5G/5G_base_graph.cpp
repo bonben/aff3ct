@@ -1,12 +1,12 @@
 #include <sstream>
 #include <streampu.hpp>
 
-#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
+#include "Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::tools;
 
-base_graph_5G
+Std_5G_base_graph
 aff3ct::tools::build_5G_base_graph(const int K, const int N)
 {
     // Checking basic errors
@@ -23,21 +23,21 @@ aff3ct::tools::build_5G_base_graph(const int K, const int N)
         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
     }
 
-    base_graph_5G base_graph;
+    Std_5G_base_graph base_graph;
 
     // Choosing the base graph according to K and R
     auto R = static_cast<float>(K) / static_cast<float>(N);
     if (K <= 292 || (K <= 3824 && R <= 0.67f) || R <= 0.25f)
     {
         base_graph.Bg = 2;
-        base_graph.Kldpc = 10;
-        base_graph.Nldpc = 52;
+        base_graph.K_LDPC = 10;
+        base_graph.N_LDPC = 52;
     }
     else
     {
         base_graph.Bg = 1;
-        base_graph.Kldpc = 10;
-        base_graph.Nldpc = 68;
+        base_graph.K_LDPC = 10;
+        base_graph.N_LDPC = 68;
     }
 
     // Dealing with edge cases
@@ -111,9 +111,9 @@ aff3ct::tools::build_5G_base_graph(const int K, const int N)
         message << "No valid Zc found for K = " << K << ".";
         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
     }
-    // Updating Nldpc et Kldpc with the choosen Zc
-    base_graph.Kldpc = base_graph.Kldpc * base_graph.Zc;
-    base_graph.Nldpc = base_graph.Nldpc * base_graph.Zc;
+    // Updating N_LDPC et K_LDPC with the choosen Zc
+    base_graph.K_LDPC = base_graph.K_LDPC * base_graph.Zc;
+    base_graph.N_LDPC = base_graph.N_LDPC * base_graph.Zc;
 
     return base_graph;
 }

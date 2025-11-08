@@ -36,7 +36,7 @@ Puncturer_5G<B, Q>::_puncture(const B* X_N1, B* X_N2, const size_t /*frame_id*/)
     int j = 0;
     while (k < this->N)
     {
-        if (!(j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc < this->base_graph.Kldpc &&
+        if (!(j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc < this->base_graph.K_LDPC &&
               this->K <= j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc))
         {
             X_N2[k] = X_N1[j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc];
@@ -54,7 +54,7 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
     int j = 0;
     while (k < this->N)
     {
-        if (!(j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc < this->base_graph.Kldpc &&
+        if (!(j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc < this->base_graph.K_LDPC &&
               this->K <= j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc))
         {
             Y_N2[j % (this->N_cw - 2 * this->base_graph.Zc) + 2 * this->base_graph.Zc] = Y_N1[k];
@@ -63,7 +63,7 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
         j++;
     }
     std::memset(Y_N2, 0, sizeof(Q) * 2 * this->base_graph.Zc);
-    std::memset(Y_N2 + this->K, 100, sizeof(Q) * (this->base_graph.Kldpc - this->K));
+    std::memset(Y_N2 + this->K, 100, sizeof(Q) * (this->base_graph.K_LDPC - this->K));
 }
 
 // ==================================================================================== explicit template instantiation
