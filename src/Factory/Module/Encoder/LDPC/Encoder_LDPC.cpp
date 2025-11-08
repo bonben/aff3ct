@@ -1,21 +1,19 @@
-#include <streampu.hpp>
-#include <utility>
-#include <string>
 #include <regex>
-
+#include <streampu.hpp>
+#include <string>
+#include <utility>
 
 #include "Factory/Module/Encoder/LDPC/Encoder_LDPC.hpp"
+#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
 #include "Module/Encoder/LDPC/DVBS2/Encoder_LDPC_DVBS2.hpp"
 #include "Module/Encoder/LDPC/Encoder_LDPC.hpp"
 #include "Module/Encoder/LDPC/From_H/Encoder_LDPC_from_H.hpp"
 #include "Module/Encoder/LDPC/From_IRA/Encoder_LDPC_from_IRA.hpp"
 #include "Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp"
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
+#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Tools/Documentation/documentation.h"
-#include "Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp"
-
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
@@ -95,7 +93,8 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     auto p = this->get_prefix();
 
-    if (this->type == "LDPC" || this->type == "LDPC_5G") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    if (this->type == "LDPC" || this->type == "LDPC_5G")
+        headers[p].push_back(std::make_pair("G matrix path", this->G_path));
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
     {
@@ -119,12 +118,14 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
         return new module::Encoder_LDPC_from_H<B>(this->K, this->N_cw, H, this->G_method, this->G_save_path, true);
     if (this->type == "LDPC_QC") return new module::Encoder_LDPC_from_QC<B>(this->K, this->N_cw, H);
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
-	if (this->type == "LDPC_5G")
-	{
-		auto base_graph = tools::build_5G_base_graph(this->K, 24);
-		std::cout << "Encoder Selected 5G Base Graph: BG" << base_graph.Bg << " with Zc = " << base_graph.Zc << " Base graph Kldpc = " << base_graph.Kldpc << " and Nldpc = " << base_graph.Nldpc << std::endl;
-		return new module::LDPC_Encoder_Cyclic_Fast<B>(this->K, base_graph.Nldpc, base_graph.Zc, this->G_path.c_str(), base_graph.Kldpc);
-	}
+    if (this->type == "LDPC_5G")
+    {
+        auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        std::cout << "Encoder Selected 5G Base Graph: BG" << base_graph.Bg << " with Zc = " << base_graph.Zc
+                  << " Base graph Kldpc = " << base_graph.Kldpc << " and Nldpc = " << base_graph.Nldpc << std::endl;
+        return new module::LDPC_Encoder_Cyclic_Fast<B>(
+          this->K, base_graph.Nldpc, base_graph.Zc, this->G_path.c_str(), base_graph.Kldpc);
+    }
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }

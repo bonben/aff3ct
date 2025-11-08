@@ -30,7 +30,7 @@ struct LDPC_matrix_handler
     {
         ALIST,
         QC,
-		CYCLIC
+        CYCLIC
     };
 
     /*

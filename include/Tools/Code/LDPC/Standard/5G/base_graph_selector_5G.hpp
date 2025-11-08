@@ -17,10 +17,10 @@ namespace tools
 struct base_graph_5G
 {
     int Bg;
-	int Zc;
-	int index_list;
-	int Kldpc;
-	int Nldpc;
+    int Zc;
+    int index_list;
+    int Kldpc;
+    int Nldpc;
 };
 
 base_graph_5G

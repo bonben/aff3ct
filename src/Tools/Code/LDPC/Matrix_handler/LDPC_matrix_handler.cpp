@@ -42,10 +42,10 @@ LDPC_matrix_handler ::get_matrix_format(std::ifstream& file)
 
     if (values.size() == 3) return Matrix_format::QC;
 
-    if (values.size() == 2) return Matrix_format::ALIST;
-
-	else return Matrix_format::CYCLIC;
-
+    if (values.size() == 2)
+        return Matrix_format::ALIST;
+    else
+        return Matrix_format::CYCLIC;
 }
 
 Sparse_matrix
@@ -96,6 +96,12 @@ LDPC_matrix_handler ::read(std::ifstream& file, Positions_vector* info_bits_pos,
                 }
             break;
         }
+        case Matrix_format::CYCLIC:
+        {
+            std::stringstream message;
+            message << "CYCLIC format is not managed here, this should never happen.";
+            throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+        }
     }
 
     return S;
@@ -133,6 +139,12 @@ LDPC_matrix_handler ::read_matrix_size(std::ifstream& file, int& H, int& N)
         {
             tools::AList::read_matrix_size(file, H, N);
             break;
+        }
+        case Matrix_format::CYCLIC:
+        {
+            std::stringstream message;
+            message << "CYCLIC format is not managed here, this should never happen.";
+            throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
         }
     }
 }

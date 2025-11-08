@@ -110,10 +110,8 @@ template<typename B, typename Q>
 module::Puncturer<B, Q>*
 Puncturer_LDPC ::build() const
 {
-    if (this->type == "LDPC")
-		return new module::Puncturer_LDPC<B, Q>(this->K, this->N, this->N_cw, this->pattern);
-	if (this->type == "LDPC_5G")
-		return new module::Puncturer_5G<B, Q>(this->K, this->N, this->N_cw, this->pattern);
+    if (this->type == "LDPC") return new module::Puncturer_LDPC<B, Q>(this->K, this->N, this->N_cw, this->pattern);
+    if (this->type == "LDPC_5G") return new module::Puncturer_5G<B, Q>(this->K, this->N, this->N_cw, this->pattern);
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }

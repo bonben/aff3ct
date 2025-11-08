@@ -588,6 +588,12 @@
 #ifndef ENCODER_HPP_
 #include <Module/Encoder/Encoder.hpp>
 #endif
+#ifndef LDPC_ENCODER_CYCLIC_FAST_HPP_
+#include <Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp>
+#endif
+#ifndef LDPC_ENCODER_CYCLIC_HPP_
+#include <Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp>
+#endif
 #ifndef ENCODER_LDPC_DVBS2_HPP_
 #include <Module/Encoder/LDPC/DVBS2/Encoder_LDPC_DVBS2.hpp>
 #endif
@@ -725,6 +731,9 @@
 #endif
 #ifndef MONITOR_HPP_
 #include <Module/Monitor/Monitor.hpp>
+#endif
+#ifndef Puncturer_5G_HPP_
+#include <Module/Puncturer/LDPC/Puncturer_5G.hpp>
 #endif
 #ifndef PUNCTURER_LDPC_HPP_
 #include <Module/Puncturer/LDPC/Puncturer_LDPC.hpp>
@@ -944,6 +953,9 @@
 #endif
 #ifndef QC_HPP_
 #include <Tools/Code/LDPC/QC/QC.hpp>
+#endif
+#ifndef BASE_GRAPH_SELECTOR_5G_HPP_
+#include <Tools/Code/LDPC/Standard/5G/base_graph_selector_5G.hpp>
 #endif
 #ifndef DVBS2_CONSTANTS_16200_HPP_
 #include <Tools/Code/LDPC/Standard/DVBS2/DVBS2_constants_16200.hpp>

@@ -3,10 +3,9 @@
 
 #include <vector>
 
+#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp"
 #include "Module/Module.hpp"
 #include "Tools/Interface/Interface_reset.hpp"
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp"
-#include <aff3ct.hpp>
 
 namespace aff3ct
 {
@@ -17,46 +16,44 @@ namespace module
  *
  * \brief
  */
-template <typename B = int>
+template<typename B = int>
 class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
 {
-protected:
-    std::vector<std::vector<B>> Rot;   /* Matrix for Faster Encoding, filled from G. */
-	const int K_ldpc;
-	std::vector<B> filled_input;
+  protected:
+    std::vector<std::vector<B>> Rot; /* Matrix for Faster Encoding, filled from G. */
+    const int K_ldpc;
+    std::vector<B> filled_input;
 
-
-public:
-	/*!
-	 * \brief Constructor.
-	 * 
-	 * \param K:         Number of information bits.
+  public:
+    /*!
+     * \brief Constructor.
+     *
+     * \param K:         Number of information bits.
      * \param N:         Number of encoded bits.
-	 * \param Zc:        Lifting size.
-	 * \param file_name: File containing the parity check matrix
-	 * \param K_ldpc:    Number of information bits in base graph.
-	 */
-	LDPC_Encoder_Cyclic_Fast(const int K, const int N, const int Zc, const char* file_name, const int K_ldpc);
+     * \param Zc:        Lifting size.
+     * \param file_name: File containing the parity check matrix
+     * \param K_ldpc:    Number of information bits in base graph.
+     */
+    LDPC_Encoder_Cyclic_Fast(const int K, const int N, const int Zc, const char* file_name, const int K_ldpc);
 
-	/*!
-	 * \brief Destructor.
-	 */
-	virtual ~LDPC_Encoder_Cyclic_Fast() = default;
+    /*!
+     * \brief Destructor.
+     */
+    virtual ~LDPC_Encoder_Cyclic_Fast() = default;
 
-	/*!
-	 * \brief Clone.
-	 */
-	virtual LDPC_Encoder_Cyclic_Fast<B>* clone() const;
-	
+    /*!
+     * \brief Clone.
+     */
+    virtual LDPC_Encoder_Cyclic_Fast<B>* clone() const;
 
-protected:
-	/*!
-	 * \brief Fill Matrix Rot from generator matrix.
-	 */
-	void _fill_Rot();
-	void _encode(const B *U_K, B *X_N, const size_t frame_id);
-	virtual std::vector<B> _CSRAA(B * vect, const int beg);
-	virtual std::vector<B> _findItems(std::vector<B> v, int target);
+  protected:
+    /*!
+     * \brief Fill Matrix Rot from generator matrix.
+     */
+    void _fill_Rot();
+    void _encode(const B* U_K, B* X_N, const size_t frame_id);
+    std::vector<B> _CSRAA(B* vect, const int beg);
+    std::vector<B> _findItems(std::vector<B> v, int target);
 };
 }
 }
