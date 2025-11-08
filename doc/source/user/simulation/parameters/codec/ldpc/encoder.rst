@@ -44,7 +44,7 @@
 
    :Type: text
    :Allowed values: ``LDPC`` ``LDPC_H`` ``LDPC_DVBS2`` ``LDPC_IRA``
-                    ``LDPC_QC`` ``AZCW`` ``COSET`` ``USER``
+                    ``LDPC_QC`` ``LDPC_5G`` ``AZCW`` ``COSET`` ``USER``
    :Default: ``AZCW``
    :Examples: ``--enc-type AZCW``
 
@@ -64,6 +64,8 @@ Description of the allowed values:
 | ``LDPC_IRA``   | |enc-type_descr_ldpc_ira|   |
 +----------------+-----------------------------+
 | ``LDPC_QC``    | |enc-type_descr_ldpc_qc|    |
++----------------+-----------------------------+
+| ``LDPC_5G``    | |enc-type_descr_ldpc_5g|    |
 +----------------+-----------------------------+
 | ``AZCW``       | |enc-type_descr_azcw|       |
 +----------------+-----------------------------+
@@ -87,6 +89,8 @@ Description of the allowed values:
 .. |enc-type_descr_ldpc_qc| replace:: Select the optimized encoding process for
    the |QC| :math:`H` parity matrices (to use with the
    :ref:`dec-ldpc-dec-h-path` parameter).
+.. |enc-type_descr_ldpc_5g| replace:: Select the 5G encoder: enables 5G rate
+   matching and puncturing patterns.
 .. |enc-type_descr_azcw| replace:: See the common :ref:`enc-common-enc-type`
    parameter.
 .. |enc-type_descr_coset| replace:: See the common :ref:`enc-common-enc-type`

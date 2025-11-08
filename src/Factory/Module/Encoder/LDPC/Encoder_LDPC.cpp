@@ -94,7 +94,11 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
     auto p = this->get_prefix();
 
     if (this->type == "LDPC" || this->type == "LDPC_5G")
+    {
         headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+        auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        headers[p].push_back(std::make_pair("K LDPC", std::to_string(base_graph.K_LDPC)));
+    }
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
     {
