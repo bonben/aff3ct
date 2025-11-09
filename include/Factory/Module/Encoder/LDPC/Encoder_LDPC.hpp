@@ -25,6 +25,8 @@ class Encoder_LDPC : public Encoder
 {
   public:
     // ----------------------------------------------------------------------------------------------------- PARAMETERS
+    int N;
+
     // matrices
     std::string H_path = "";
     std::string G_path = "";

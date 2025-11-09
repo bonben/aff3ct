@@ -62,7 +62,7 @@ aff3ct::tools::build_5G_base_graph(const int K, const int N)
     if (base_graph.Bg == 2 && R < 1 / 5.0f)
     {
         std::stringstream message;
-        message << "K = " << K << " is not valid for base graph BG2 (R must be >= 1/5).";
+        message << "K = " << K << " is not valid for base graph BG2 (R must be >= 1/5, N = " << N << ").";
         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
     }
 

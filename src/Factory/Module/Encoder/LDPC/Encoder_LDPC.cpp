@@ -100,7 +100,7 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     if (this->type == "LDPC_5G")
     {
-        auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        auto base_graph = tools::build_5G_base_graph(this->K, this->N);
         headers[p].push_back(std::make_pair("Base graph", "BG" + std::to_string(base_graph.Bg)));
         headers[p].push_back(std::make_pair("Index list", std::to_string(base_graph.index_list)));
         headers[p].push_back(std::make_pair("Zc", std::to_string(base_graph.Zc)));
@@ -143,12 +143,12 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
     if (this->type == "LDPC_5G")
     {
-        auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        auto base_graph = tools::build_5G_base_graph(this->K, this->N);
         std::string G_path = this->G_path;
         if (G_path.empty())
         {
             G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
-                      std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+                       std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
             G_path = cli::modify_path<cli::Is_file>(G_path);
         }
         return new module::LDPC_Encoder_Cyclic_Fast<B>(

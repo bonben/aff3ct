@@ -41,6 +41,7 @@ class Decoder_LDPC : public Decoder
     bool enable_syndrome = true;
     int syndrome_depth = 1;
     int n_ite = 10;
+    int N;
 
     std::vector<float> ppbf_proba;
 

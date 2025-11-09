@@ -155,7 +155,7 @@ Decoder_LDPC ::store(const cli::Argument_map_value& vals)
 
     if (this->H_path.empty() && this->standard == "5G")
     {
-        auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        auto base_graph = tools::build_5G_base_graph(this->K, this->N);
         std::string H_path = "conf/dec/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
                              std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".qc";
         this->H_path = cli::modify_path<cli::Is_file>(H_path);

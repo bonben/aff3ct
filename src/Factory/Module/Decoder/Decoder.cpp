@@ -72,7 +72,7 @@ Decoder ::get_headers(std::map<std::string, tools::header_list>& headers, const 
     headers[p].push_back(std::make_pair("Type (D)", this->type));
     if (this->implem.size()) headers[p].push_back(std::make_pair("Implementation", this->implem));
     if (full) headers[p].push_back(std::make_pair("Info. bits (K)", std::to_string(this->K)));
-    if (full) headers[p].push_back(std::make_pair("Codeword size (N)", std::to_string(this->N_cw)));
+    if (full) headers[p].push_back(std::make_pair("Codeword size (N_cw)", std::to_string(this->N_cw)));
     if (full) headers[p].push_back(std::make_pair("Code rate (R)", std::to_string(this->R)));
     headers[p].push_back(std::make_pair("Systematic", ((this->systematic) ? "yes" : "no")));
     if (this->type == "ML" || this->type == "CHASE")

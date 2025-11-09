@@ -77,9 +77,10 @@ Codec_LDPC ::store(const cli::Argument_map_value& vals)
         enc_ldpc->standard = "5G";
         dec_ldpc->standard = "5G";
         dec_ldpc->K = enc_ldpc->K;
-        auto base_graph = tools::build_5G_base_graph(enc_ldpc->K, 24);
+        enc_ldpc->N = enc_ldpc->N_cw;
+        dec_ldpc->N = enc_ldpc->N_cw;
+        auto base_graph = tools::build_5G_base_graph(enc_ldpc->K, enc_ldpc->N);
         enc_ldpc->N_cw = base_graph.N_LDPC;
-
     }
 
     if (enc->type == "LDPC_DVBS2")
