@@ -36,6 +36,8 @@ class Encoder_LDPC : public Encoder
     std::string G_method = "IDENTITY";
     std::string G_save_path = "";
 
+    std::string standard = "";
+
     // -------------------------------------------------------------------------------------------------------- METHODS
     explicit Encoder_LDPC(const std::string& p = Encoder_LDPC_prefix);
     virtual ~Encoder_LDPC() = default;

@@ -93,11 +93,30 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     auto p = this->get_prefix();
 
-    if (this->type == "LDPC" || this->type == "LDPC_5G")
+    if (this->type == "LDPC")
     {
         headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    }
+
+    if (this->type == "LDPC_5G")
+    {
         auto base_graph = tools::build_5G_base_graph(this->K, 24);
+        headers[p].push_back(std::make_pair("Base graph", "BG" + std::to_string(base_graph.Bg)));
+        headers[p].push_back(std::make_pair("Index list", std::to_string(base_graph.index_list)));
+        headers[p].push_back(std::make_pair("Zc", std::to_string(base_graph.Zc)));
         headers[p].push_back(std::make_pair("K LDPC", std::to_string(base_graph.K_LDPC)));
+        headers[p].push_back(std::make_pair("N LDPC", std::to_string(base_graph.N_LDPC)));
+
+        if (this->G_path.empty())
+        {
+            std::string G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
+                                 std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+            headers[p].push_back(std::make_pair("G matrix path", cli::modify_path<cli::Is_file>(G_path)));
+        }
+        else
+        {
+            headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+        }
     }
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
@@ -125,10 +144,15 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
     if (this->type == "LDPC_5G")
     {
         auto base_graph = tools::build_5G_base_graph(this->K, 24);
-        std::cout << "Encoder Selected 5G Base Graph: BG" << base_graph.Bg << " with Zc = " << base_graph.Zc
-                  << " Base graph K_LDPC = " << base_graph.K_LDPC << " and N_LDPC = " << base_graph.N_LDPC << std::endl;
+        std::string G_path = this->G_path;
+        if (G_path.empty())
+        {
+            G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
+                      std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+            G_path = cli::modify_path<cli::Is_file>(G_path);
+        }
         return new module::LDPC_Encoder_Cyclic_Fast<B>(
-          this->K, base_graph.N_LDPC, base_graph.Zc, this->G_path.c_str(), base_graph.K_LDPC);
+          this->K, base_graph.N_LDPC, base_graph.Zc, G_path.c_str(), base_graph.K_LDPC);
     }
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);

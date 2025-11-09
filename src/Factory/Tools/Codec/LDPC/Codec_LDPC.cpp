@@ -2,6 +2,7 @@
 #include "Factory/Module/Decoder/LDPC/Decoder_LDPC.hpp"
 #include "Factory/Module/Encoder/LDPC/Encoder_LDPC.hpp"
 #include "Factory/Module/Puncturer/LDPC/Puncturer_LDPC.hpp"
+#include "Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::factory;
@@ -70,9 +71,26 @@ Codec_LDPC ::store(const cli::Argument_map_value& vals)
     auto dec_ldpc = dynamic_cast<Decoder_LDPC*>(dec.get());
 
     enc->store(vals);
+
+    if (enc->type == "LDPC_5G")
+    {
+        enc_ldpc->standard = "5G";
+        dec_ldpc->standard = "5G";
+        dec_ldpc->K = enc_ldpc->K;
+        auto base_graph = tools::build_5G_base_graph(enc_ldpc->K, 24);
+        enc_ldpc->N_cw = base_graph.N_LDPC;
+
+    }
+
+    if (enc->type == "LDPC_DVBS2")
+    {
+        enc_ldpc->standard = "DVBS2";
+        dec_ldpc->standard = "DVBS2";
+    }
+
     dec->store(vals);
 
-    if (enc->type == "LDPC_DVBS2" || enc->type == "LDPC")
+    if (enc->type == "LDPC_DVBS2" || enc->type == "LDPC" || enc->type == "LDPC_5G")
         dec->N_cw = enc->N_cw; // then the encoder knows the N_cw
     else
         enc->N_cw = dec->N_cw; // then the decoder knows the N_cw
