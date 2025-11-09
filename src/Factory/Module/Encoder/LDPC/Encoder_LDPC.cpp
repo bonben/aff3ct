@@ -148,7 +148,7 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
         if (G_path.empty())
         {
             G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
-                       std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+                     std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
             G_path = cli::modify_path<cli::Is_file>(G_path);
         }
         return new module::LDPC_Encoder_Cyclic_Fast<B>(
