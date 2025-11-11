@@ -63,7 +63,7 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
         j++;
     }
     std::memset(Y_N2, 0, sizeof(Q) * 2 * this->base_graph.Zc);
-    std::memset(Y_N2 + this->K, 100, sizeof(Q) * (this->base_graph.K_LDPC - this->K));
+    std::fill(Y_N2 + this->K, Y_N2 + this->K + this->base_graph.K_LDPC - this->K, std::numeric_limits<Q>::infinity());
 }
 
 // ==================================================================================== explicit template instantiation
