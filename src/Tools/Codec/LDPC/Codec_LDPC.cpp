@@ -69,9 +69,14 @@ Codec_LDPC<B, Q>::Codec_LDPC(const factory::Encoder_LDPC& enc_params,
 
     if (info_bits_pos->empty())
     {
-        std::cout << "Info bits positions not provided, trying to extract them from the generator matrix..."
-                  << std::endl;
-        if (enc_params.type == "LDPC_H") this->set_encoder(enc_params.build<B>(*G, *H));
+        if (enc_params.standard != "5G")
+            std::clog << rang::tag::warning << "Info bits positions not provided, trying to extract them from the "
+                      << "generator matrix..." << std::endl;
+
+        if (enc_params.type == "LDPC_H")
+        {
+            this->set_encoder(enc_params.build<B>(*G, *H));
+        }
     }
     else
     {
