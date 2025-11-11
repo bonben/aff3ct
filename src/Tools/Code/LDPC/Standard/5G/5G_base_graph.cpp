@@ -36,7 +36,7 @@ aff3ct::tools::build_5G_base_graph(const int K, const int N)
     else
     {
         base_graph.Bg = 1;
-        base_graph.K_LDPC = 10;
+        base_graph.K_LDPC = 22;
         base_graph.N_LDPC = 68;
     }
 
