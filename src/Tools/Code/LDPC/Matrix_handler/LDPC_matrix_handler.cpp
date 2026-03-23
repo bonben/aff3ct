@@ -489,11 +489,15 @@ LDPC_matrix_handler ::transform_H_to_G_identity(const LDPC_matrix& H, Positions_
     H.is_of_way_throw(Matrix::Way::HORIZONTAL);
     auto G = H;
 
-    auto M = H.get_n_rows();
     auto N = H.get_n_cols();
-    auto K = N - M;
 
     auto swapped_cols = LDPC_matrix_handler::form_diagonal(G, Matrix::Origin::TOP_LEFT);
+
+    // form_diagonal may delete zero rows from rank-deficient matrices,
+    // so use the post-elimination row count (= rank) instead of the original.
+    auto M = G.get_n_rows();
+    auto K = N - M;
+
     LDPC_matrix_handler::form_identity(G, Matrix::Origin::TOP_LEFT);
 
     // erase the just created M*M identity in the left part of H and add the K*K identity below
