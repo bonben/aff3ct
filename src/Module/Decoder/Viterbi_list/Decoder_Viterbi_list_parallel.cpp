@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "Module/Decoder/RSC/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
+#include "Module/Decoder/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
@@ -42,7 +42,7 @@ Decoder_Viterbi_list_parallel<B, Q>::Decoder_Viterbi_list_parallel(const int K,
   , m_step_result(std::vector<Q>(L * m_n_states))
   , m_M(std::vector<int>(m_n_states * m_n_states))
   , m_decoded(std::vector<std::vector<int>>(L))
-  , m_bin_vals({ { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 0 } })
+  , m_bin_vals({ { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 } })
   , m_closing_path(std::vector<int>(m_n_states))
   , m_closing_inputs(std::vector<int>(m_n_states))
   , m_crc(crc.clone())
@@ -220,7 +220,7 @@ Decoder_Viterbi_list_parallel<B, Q>::__forward_pass(const Q* Y_N)
                         {
                             // Recuperation du poids du noeud
                             const Q node_weight = m_P[idx];
-                            const std::vector<Q> output = m_bin_vals[2 * bit_sys + m_C[bit_sys][previous_state]];
+                            const std::vector<Q> output = m_bin_vals[m_C[bit_sys][previous_state]];
                             Q branch_weight = channel_input[0] * output[0] + channel_input[1] * output[1];
                             ;
 
@@ -311,7 +311,7 @@ Decoder_Viterbi_list_parallel<B, Q>::__forward_pass_closing(const Q* Y_N)
 
                             if (branch_weight == gDOUBLE_INF) // pas calcule
                             {
-                                const std::vector<Q> output = m_bin_vals[2 * bit_sys + m_C[bit_sys][previous_state]];
+                                const std::vector<Q> output = m_bin_vals[m_C[bit_sys][previous_state]];
                                 branch_weight = channel_input[0] * output[0] + channel_input[1] * output[1];
                                 m_branch_metr[i_next_state * (m_K + m_n_memories) + previous_state] =
                                   branch_weight; // stockage

@@ -1,5 +1,5 @@
 
-#include "Module/Decoder/RSC/Viterbi/Decoder_Viterbi_SIHO.hpp"
+#include "Module/Decoder/Viterbi/Decoder_Viterbi_SIHO.hpp"
 
 #define DOUBLE_INF std::numeric_limits<double>::infinity()
 
@@ -24,7 +24,7 @@ Decoder_Viterbi_SIHO<B, R>::Decoder_Viterbi_SIHO(const int K,
   , m_backwards_path(std::vector<int>(m_n_states * (m_n_steps + 1)))
   , m_M(std::vector<int>(m_n_states * m_n_states))
   , m_decoded(std::vector<int>(m_K + m_n_memories))
-  , m_bin_vals(std::vector<std::array<double, 2>>{ { 0.0, 0.0 }, { 0.0, 1.0 }, { 1.0, 1.0 }, { 1.0, 0.0 } })
+  , m_bin_vals(std::vector<std::array<double, 2>>{ { 0.0, 0.0 }, { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 } })
   , m_closing_path(std::vector<int>(m_n_states))
   , m_closing_inputs(std::vector<int>(m_n_states))
 {
@@ -164,24 +164,21 @@ Decoder_Viterbi_SIHO<B, R>::_forward_pass(const R* Y_N)
             if (channel_input[i] < -100) channel_input[i] = -100;
         }
 
-        for (auto i_state = 0; i_state < m_n_states; i_state++)
+        for (auto previous_state = 0; previous_state < m_n_states; previous_state++)
         {
-            for (auto bit_sys = 0; bit_sys < 2; bit_sys++)
+            const int previous_node_idx = (i_step - 1) * m_n_states + previous_state;
+            if (m_P[previous_node_idx] != DOUBLE_INF)
             {
-                const int previous_state = m_T_inv[bit_sys][i_state];
-                const int previous_node_idx = (i_step - 1) * m_n_states + previous_state;
-                const int next_node_idx = (i_step)*m_n_states + i_state;
-                // Si on peut partir de l'etat donne a l'etape donnee
-                if (m_P[previous_node_idx] != DOUBLE_INF)
+                const double node_weight = m_P[previous_node_idx];
+                for (auto bit_sys = 0; bit_sys < 2; bit_sys++)
                 {
-                    // Recuperation du poids du noeud
-                    const double node_weight = m_P[previous_node_idx];
+                    const int next_state = m_T[bit_sys][previous_state];
+                    const int next_node_idx = (i_step)*m_n_states + next_state;
 
-                    const std::array<double, 2> output = m_bin_vals[2 * bit_sys + m_C[bit_sys][previous_state]];
+                    const std::array<double, 2> output = m_bin_vals[m_C[bit_sys][previous_state]];
 
                     const double new_weight = node_weight + channel_input[0] * output[0] + channel_input[1] * output[1];
 
-                    // s'il existe une etape suivante
                     if (new_weight < m_P[next_node_idx])
                     {
                         m_P[next_node_idx] = new_weight;
@@ -212,7 +209,7 @@ Decoder_Viterbi_SIHO<B, R>::_forward_pass(const R* Y_N)
                 const int bit_sys = m_closing_inputs[i_state];
                 const int next_node_idx = (i_step + 1) * m_n_states + next_state;
 
-                const std::array<double, 2> output = m_bin_vals[2 * bit_sys + m_C[bit_sys][i_state]];
+                const std::array<double, 2> output = m_bin_vals[m_C[bit_sys][i_state]];
 
                 const double new_weight = node_weight + channel_input[0] * output[0] + channel_input[1] * output[1];
 
