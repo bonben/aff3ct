@@ -44,9 +44,13 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_gamma(const R* s
     for (auto i = 0; i < this->K + this->n_ff; i++)
     {
         // there is a big loss of precision here in fixed point
-        this->gamma[0][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(sys[i] + par[i]);
+        this->gamma[0][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(  sys[i] + par[i]);
         // there is a big loss of precision here in fixed point
-        this->gamma[1][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(sys[i] - par[i]);
+        this->gamma[1][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(  sys[i] - par[i]);
+        // there is a big loss of precision here in fixed point
+        this->gamma[2][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(- sys[i] + par[i]);
+        // there is a big loss of precision here in fixed point
+        this->gamma[3][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(- sys[i] - par[i]);
     }
 }
 
@@ -76,7 +80,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta()
     {
         for (auto j = 0; j < this->n_states; j++)
             this->beta[j][i] = MAX1(this->beta[this->trellis[6][j]][i + 1] + this->gamma[this->trellis[7][j]][i],
-                                    this->beta[this->trellis[8][j]][i + 1] - this->gamma[this->trellis[9][j]][i]);
+                                    this->beta[this->trellis[8][j]][i + 1] + this->gamma[this->trellis[9][j]][i]);
 
         RSC_BCJR_seq_generic_normalize<R>::apply(this->beta, i, this->n_states);
     }
@@ -99,7 +103,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext(const R* sys
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         for (auto j = 0; j < this->n_states; j++)
@@ -109,7 +113,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext(const R* sys
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         ext[i] = RSC_BCJR_seq_generic_post<R, RD>::compute(max0 - max1) - sys[i];
@@ -127,7 +131,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta_ext(const R
     {
         for (auto j = 0; j < this->n_states; j++)
             beta_cur[j] = MAX1(beta_prev[this->trellis[6][j]] + this->gamma[this->trellis[7][j]][i],
-                               beta_prev[this->trellis[8][j]] - this->gamma[this->trellis[9][j]][i]);
+                               beta_prev[this->trellis[8][j]] + this->gamma[this->trellis[9][j]][i]);
 
         RSC_BCJR_seq_generic_normalize<R>::apply(beta_cur.data(), i, this->n_states);
 
@@ -140,7 +144,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta_ext(const R
     {
         RD max0 = (RD)this->alpha[0][i] + (RD)beta_prev[this->trellis[6][0]] + (RD)this->gamma[this->trellis[7][0]][i];
 
-        RD max1 = (RD)this->alpha[0][i] + (RD)beta_prev[this->trellis[8][0]] - (RD)this->gamma[this->trellis[9][0]][i];
+        RD max1 = (RD)this->alpha[0][i] + (RD)beta_prev[this->trellis[8][0]] + (RD)this->gamma[this->trellis[9][0]][i];
 
         for (auto j = 1; j < this->n_states; j++)
             if (this->trellis[1][j] == 1)
@@ -149,7 +153,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta_ext(const R
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)beta_prev[this->trellis[8][j]] -
+                            (RD)this->alpha[j][i] + (RD)beta_prev[this->trellis[8][j]] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         for (auto j = 1; j < this->n_states; j++)
@@ -159,7 +163,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta_ext(const R
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)beta_prev[this->trellis[8][j]] -
+                            (RD)this->alpha[j][i] + (RD)beta_prev[this->trellis[8][j]] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         ext[i] = RSC_BCJR_seq_generic_post<R, RD>::compute(max0 - max1) - sys[i];
@@ -167,7 +171,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_beta_ext(const R
         // compute the beta values
         for (auto j = 0; j < this->n_states; j++)
             beta_cur[j] = MAX1(beta_prev[this->trellis[6][j]] + this->gamma[this->trellis[7][j]][i],
-                               beta_prev[this->trellis[8][j]] - this->gamma[this->trellis[9][j]][i]);
+                               beta_prev[this->trellis[8][j]] + this->gamma[this->trellis[9][j]][i]);
 
         RSC_BCJR_seq_generic_normalize<R>::apply(beta_cur.data(), i, this->n_states);
 
@@ -193,7 +197,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext_sys(const R*
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         for (auto j = 0; j < this->n_states; j++)
@@ -203,7 +207,7 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext_sys(const R*
                               (RD)this->gamma[this->trellis[7][j]][i]);
             else
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         ext_sys[i] = RSC_BCJR_seq_generic_post<R, RD>::compute(max0 - max1) - sys[i];
@@ -233,12 +237,12 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext_par(const R*
 
             else if (this->trellis[1][j] == -1 && this->trellis[9][j] == 1)
                 max0 = MAX2(max0,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
             else if (this->trellis[1][j] == -1 && this->trellis[9][j] == 0)
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         for (auto j = 0; j < this->n_states; j++)
@@ -254,12 +258,12 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_ext_par(const R*
 
             else if (this->trellis[4][j] == -1 && this->trellis[9][j] == 1)
                 max0 = MAX2(max0,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
             else if (this->trellis[4][j] == -1 && this->trellis[9][j] == 0)
                 max1 = MAX2(max1,
-                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] -
+                            (RD)this->alpha[j][i] + (RD)this->beta[this->trellis[8][j]][i + 1] +
                               (RD)this->gamma[this->trellis[9][j]][i]);
 
         ext_par[i] = RSC_BCJR_seq_generic_post<R, RD>::compute(max0 - max1) - par[i];
