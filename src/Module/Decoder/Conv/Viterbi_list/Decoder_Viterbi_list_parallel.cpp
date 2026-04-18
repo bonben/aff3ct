@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "Module/Decoder/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
+#include "Module/Decoder/Conv/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;

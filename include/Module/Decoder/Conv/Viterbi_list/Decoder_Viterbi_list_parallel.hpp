@@ -11,7 +11,8 @@
 
 #define DEBUG_BUILD
 
-#include <aff3ct.hpp>
+#include "Module/CRC/CRC.hpp"
+#include "Module/Decoder/Decoder_SIHO.hpp"
 
 namespace aff3ct
 {

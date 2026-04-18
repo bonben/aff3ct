@@ -1,5 +1,5 @@
 
-#include "Module/Decoder/Viterbi/Decoder_Viterbi_SIHO.hpp"
+#include "Module/Decoder/Conv/Viterbi/Decoder_Viterbi_SIHO.hpp"
 
 #define DOUBLE_INF std::numeric_limits<double>::infinity()
 

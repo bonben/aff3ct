@@ -6,6 +6,8 @@
 #include <utility>
 
 #include "Factory/Module/Decoder/RSC/Decoder_RSC.hpp"
+#include "Module/Decoder/Conv/Viterbi/Decoder_Viterbi_SIHO.hpp"
+#include "Module/Decoder/Conv/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
 #include "Module/Decoder/RSC/BCJR/Inter/Decoder_RSC_BCJR_inter_fast.hpp"
 #include "Module/Decoder/RSC/BCJR/Inter/Decoder_RSC_BCJR_inter_std.hpp"
 #include "Module/Decoder/RSC/BCJR/Inter/Decoder_RSC_BCJR_inter_very_fast.hpp"
@@ -20,8 +22,6 @@
 #include "Module/Decoder/RSC/BCJR/Seq/Decoder_RSC_BCJR_seq_very_fast.hpp"
 #include "Module/Decoder/RSC/BCJR/Seq_generic/Decoder_RSC_BCJR_seq_generic_std.hpp"
 #include "Module/Decoder/RSC/BCJR/Seq_generic/Decoder_RSC_BCJR_seq_generic_std_json.hpp"
-#include "Module/Decoder/Viterbi/Decoder_Viterbi_SIHO.hpp"
-#include "Module/Decoder/Viterbi_list/Decoder_Viterbi_list_parallel.hpp"
 #include "Tools/Documentation/documentation.h"
 
 using namespace aff3ct;

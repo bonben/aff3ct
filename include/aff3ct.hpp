@@ -306,6 +306,12 @@
 #ifndef DECODER_BCH_STD
 #include <Module/Decoder/BCH/Standard/Decoder_BCH_std.hpp>
 #endif
+#ifndef DECODER_VITERBI_SIHO_HPP_
+#include <Module/Decoder/Conv/Viterbi/Decoder_Viterbi_SIHO.hpp>
+#endif
+#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
+#include <Module/Decoder/Conv/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
+#endif
 #ifndef DECODER_HIHO_HPP_
 #include <Module/Decoder/Decoder_HIHO.hpp>
 #endif
@@ -578,12 +584,6 @@
 #endif
 #ifndef DECODER_TURBO_PRODUCT_HPP_
 #include <Module/Decoder/Turbo_product/Decoder_turbo_product.hpp>
-#endif
-#ifndef DECODER_VITERBI_SIHO_HPP_
-#include <Module/Decoder/Viterbi/Decoder_Viterbi_SIHO.hpp>
-#endif
-#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
-#include <Module/Decoder/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
 #endif
 #ifndef ENCODER_AZCW_HPP_
 #include <Module/Encoder/AZCW/Encoder_AZCW.hpp>
