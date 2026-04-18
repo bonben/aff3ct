@@ -89,7 +89,7 @@ Encoder_RSC_sys<B>::get_trellis()
         trellis[1 + (occurrence[state] ? 3 : 0)][state] = +1;                // gamma coeff
         trellis[2 + (occurrence[state] ? 3 : 0)][state] = bit_sys ^ bit_par; // gamma
         trellis[6][i] = state;                                               // final state, bit syst = 0
-        trellis[7][i] = (bit_sys << 1) | bit_par;                           // output     , bit syst = 0
+        trellis[7][i] = (bit_sys << 1) | bit_par;                            // output     , bit syst = 0
 
         occurrence[state] = true;
 
@@ -102,7 +102,7 @@ Encoder_RSC_sys<B>::get_trellis()
         trellis[1 + (occurrence[state] ? 3 : 0)][state] = -1;                // gamma coeff
         trellis[2 + (occurrence[state] ? 3 : 0)][state] = bit_sys ^ bit_par; // gamma
         trellis[8][i] = state;                                               // initial state, bit syst = 1
-        trellis[9][i] = (bit_sys << 1) | bit_par;                           // output       , bit syst = 1
+        trellis[9][i] = (bit_sys << 1) | bit_par;                            // output       , bit syst = 1
 
         occurrence[state] = true;
     }

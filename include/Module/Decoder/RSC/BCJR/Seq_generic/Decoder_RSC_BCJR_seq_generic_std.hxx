@@ -44,13 +44,13 @@ Decoder_RSC_BCJR_seq_generic_std<B, R, RD, MAX1, MAX2>::compute_gamma(const R* s
     for (auto i = 0; i < this->K + this->n_ff; i++)
     {
         // there is a big loss of precision here in fixed point
-        this->gamma[0][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(  sys[i] + par[i]);
+        this->gamma[0][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(sys[i] + par[i]);
         // there is a big loss of precision here in fixed point
-        this->gamma[1][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(  sys[i] - par[i]);
+        this->gamma[1][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(sys[i] - par[i]);
         // there is a big loss of precision here in fixed point
-        this->gamma[2][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(- sys[i] + par[i]);
+        this->gamma[2][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(-sys[i] + par[i]);
         // there is a big loss of precision here in fixed point
-        this->gamma[3][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(- sys[i] - par[i]);
+        this->gamma[3][i] = RSC_BCJR_seq_generic_div_or_not<R>::apply(-sys[i] - par[i]);
     }
 }
 

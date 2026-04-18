@@ -35,7 +35,11 @@ Encoder_conv<B>::Encoder_conv(const int K, const int N, const std::vector<int>& 
     // n_ff = floor(log2(max_poly)), i.e. the number of memory elements
     int tmp = max_poly;
     int bits = 0;
-    while (tmp > 0) { bits++; tmp >>= 1; }
+    while (tmp > 0)
+    {
+        bits++;
+        tmp >>= 1;
+    }
     // const_cast to set the const member after computation
     const_cast<int&>(this->n_ff) = bits - 1;
     const_cast<int&>(this->n_states) = 1 << this->n_ff;
@@ -50,9 +54,8 @@ Encoder_conv<B>::Encoder_conv(const int K, const int N, const std::vector<int>& 
     if (N != n_poly * (K + this->n_ff))
     {
         std::stringstream message;
-        message << "'N' must equal 'n_poly' * ('K' + 'n_ff') ('N' = " << N
-                << ", 'n_poly' = " << n_poly << ", 'K' = " << K
-                << ", 'n_ff' = " << this->n_ff << ").";
+        message << "'N' must equal 'n_poly' * ('K' + 'n_ff') ('N' = " << N << ", 'n_poly' = " << n_poly
+                << ", 'K' = " << K << ", 'n_ff' = " << this->n_ff << ").";
         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
     }
 
@@ -157,27 +160,27 @@ Encoder_conv<B>::get_trellis()
     {
         // input = 0
         int next0 = next_state_table[2 * i + 0];
-        int out0  = output_table[2 * i + 0];
+        int out0 = output_table[2 * i + 0];
 
-        trellis[0 + (occurrence[next0] ? 3 : 0)][next0] = i;     // initial state
-        trellis[1 + (occurrence[next0] ? 3 : 0)][next0] = +1;    // gamma coeff
-        trellis[2 + (occurrence[next0] ? 3 : 0)][next0] = out0;  // gamma (packed output)
+        trellis[0 + (occurrence[next0] ? 3 : 0)][next0] = i;    // initial state
+        trellis[1 + (occurrence[next0] ? 3 : 0)][next0] = +1;   // gamma coeff
+        trellis[2 + (occurrence[next0] ? 3 : 0)][next0] = out0; // gamma (packed output)
 
-        trellis[6][i] = next0;  // next state, input = 0
-        trellis[7][i] = out0;   // packed output, input = 0
+        trellis[6][i] = next0; // next state, input = 0
+        trellis[7][i] = out0;  // packed output, input = 0
 
         occurrence[next0] = true;
 
         // input = 1
         int next1 = next_state_table[2 * i + 1];
-        int out1  = output_table[2 * i + 1];
+        int out1 = output_table[2 * i + 1];
 
-        trellis[0 + (occurrence[next1] ? 3 : 0)][next1] = i;     // initial state
-        trellis[1 + (occurrence[next1] ? 3 : 0)][next1] = -1;    // gamma coeff
-        trellis[2 + (occurrence[next1] ? 3 : 0)][next1] = out1;  // gamma (packed output)
+        trellis[0 + (occurrence[next1] ? 3 : 0)][next1] = i;    // initial state
+        trellis[1 + (occurrence[next1] ? 3 : 0)][next1] = -1;   // gamma coeff
+        trellis[2 + (occurrence[next1] ? 3 : 0)][next1] = out1; // gamma (packed output)
 
-        trellis[8][i] = next1;  // next state, input = 1
-        trellis[9][i] = out1;   // packed output, input = 1
+        trellis[8][i] = next1; // next state, input = 1
+        trellis[9][i] = out1;  // packed output, input = 1
 
         occurrence[next1] = true;
     }
