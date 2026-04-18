@@ -25,21 +25,21 @@ Decoder_RSC_BCJR_inter_intra<B, R>::Decoder_RSC_BCJR_inter_intra(const int& K,
     this->set_name(name);
     this->set_n_frames_per_wave(mipp::N<R>() / 8);
 
-    std::vector<std::vector<int>> req_trellis(10, std::vector<int>(8));
-    req_trellis[0] = { 0, 2, 4, 6, 0, 2, 4, 6 };
-    req_trellis[1] = { 1, -1, 1, -1, -1, 1, -1, 1 };
-    req_trellis[2] = { 0, 1, 1, 0, 0, 1, 1, 0 };
-    req_trellis[3] = { 1, 3, 5, 7, 1, 3, 5, 7 };
-    req_trellis[4] = { -1, 1, -1, 1, 1, -1, 1, -1 };
-    req_trellis[5] = { 0, 1, 1, 0, 0, 1, 1, 0 };
-    req_trellis[6] = { 0, 4, 5, 1, 2, 6, 7, 3 };
-    req_trellis[7] = { 0, 0, 1, 1, 1, 1, 0, 0 };
-    req_trellis[8] = { 4, 0, 1, 5, 6, 2, 3, 7 };
-    req_trellis[9] = { 0, 0, 1, 1, 1, 1, 0, 0 };
+    // std::vector<std::vector<int>> req_trellis(10, std::vector<int>(8));
+    // req_trellis[0] = { 0, 2, 4, 6, 0, 2, 4, 6 };
+    // req_trellis[1] = { 1, -1, 1, -1, -1, 1, -1, 1 };
+    // req_trellis[2] = { 0, 1, 1, 0, 0, 1, 1, 0 };
+    // req_trellis[3] = { 1, 3, 5, 7, 1, 3, 5, 7 };
+    // req_trellis[4] = { -1, 1, -1, 1, 1, -1, 1, -1 };
+    // req_trellis[5] = { 0, 1, 1, 0, 0, 1, 1, 0 };
+    // req_trellis[6] = { 0, 4, 5, 1, 2, 6, 7, 3 };
+    // req_trellis[7] = { 0, 0, 1, 1, 1, 1, 0, 0 };
+    // req_trellis[8] = { 4, 0, 1, 5, 6, 2, 3, 7 };
+    // req_trellis[9] = { 0, 0, 1, 1, 1, 1, 0, 0 };
 
-    for (unsigned i = 0; i < req_trellis.size(); i++)
-        if (trellis[i] != req_trellis[i])
-            throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, "Unsupported trellis.");
+    // for (unsigned i = 0; i < req_trellis.size(); i++)
+    //     if (trellis[i] != req_trellis[i])
+    //         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, "Unsupported trellis.");
 }
 
 template<typename B, typename R>
