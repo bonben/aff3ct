@@ -10,6 +10,7 @@ RS_polynomial_generator ::RS_polynomial_generator(const int& N, const int& t)
   , t(t)
   , d(2 * t + 1)
   , g(d, 0)
+  , mt((N + 1) * 2 * t, 0) 
 {
     if (t < 1)
     {
@@ -141,13 +142,12 @@ RS_polynomial_generator ::compute_polynomial()
     for (auto i = 0; i < (int)g.size(); i++)
         g[i] = index_of[g[i]];
 
-    auto r = (int) g.size(); 
-    mt.resize((N+1) * r);
-
     auto* mt_reg = mt.data();
-    for(auto j = 0; j < r;++j)
+    
+    for(auto j = 0; j < 2*t; ++j)
         mt_reg[j] = 0; 
-    for (auto x = 1; x < N+1; ++x)
-        for (auto j = 0; j < r; ++j)
-            mt_reg[x *r + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
+    
+    for (auto x = 1; x < N + 1; ++x)
+        for (auto j = 0; j < 2*t; ++j)
+            mt_reg[(x * 2 * t) + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
 }
