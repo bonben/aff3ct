@@ -21,6 +21,7 @@ Encoder_RS<B>::Encoder_RS(const int& K, const int& N, const tools::RS_polynomial
   , alpha_to(GF.get_alpha_to())
   , index_of(GF.get_index_of())
   , g(GF.get_g())
+  , mt(GF.get_mt())
   , bb(n_rdncy)
   , packed_U_K(K_rs)
   , packed_X_N(N_rs)
@@ -64,26 +65,12 @@ void
 Encoder_RS<B>::__encode(const S* U_K, S* par)
 {
     std::fill(par, par + this->n_rdncy, (S)0);
-
-    for (auto i = this->K_rs - 1; i >= 0; i--)
-    {
-        const auto feedback = this->index_of[U_K[i] ^ par[this->n_rdncy - 1]];
-
-        if (feedback != -1)
-        {
-            for (auto j = this->n_rdncy - 1; j > 0; j--)
-                if (this->g[j] != -1)
-                    par[j] = par[j - 1] ^ this->alpha_to[(this->g[j] + feedback) % this->N_rs];
-                else
-                    par[j] = par[j - 1];
-            par[0] = this->alpha_to[(this->g[0] + feedback) % this->N_rs];
-        }
-        else
-        {
-            for (auto j = this->n_rdncy - 1; j > 0; j--)
-                par[j] = par[j - 1];
-            par[0] = 0;
-        }
+    const int* __restrict mt = gf.get_mul_table().data();
+    for (int i = this->K_rs - 1; i >= 0; --i) {
+        int feedback = msg[i] ^ par[r-1];
+        for (int j = this->n_rdncy - 1; j > 0; --j) 
+            par[j] = par[j-1]^mt[feedback * r + j];
+        par[0] = mt[feedback * r];
     }
 }
 

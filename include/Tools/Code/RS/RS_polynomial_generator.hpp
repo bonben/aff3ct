@@ -22,6 +22,7 @@ class RS_polynomial_generator : public Galois<int>
     const int d;
 
     std::vector<int> g; // coefficients of the generator polynomial, g(x)
+    std :: vector<int> mt; // multiplication table 
 
   public:
     RS_polynomial_generator(const int& N, const int& t);
@@ -30,9 +31,9 @@ class RS_polynomial_generator : public Galois<int>
     int get_d() const;
     int get_t() const;       // get the correction power
     int get_n_rdncy() const; // get the number of redundancy bits
-
+    
     const std::vector<int>& get_g() const; // get the coefficients of the generator polynomial
-
+    const std::vector<int>& get_mt() const; // get the coefficients of the multiplication table
   private:
     void compute_polynomial();
 };

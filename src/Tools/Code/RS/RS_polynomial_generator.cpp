@@ -45,6 +45,12 @@ RS_polynomial_generator ::get_g() const
     return g;
 }
 
+const std::vector<int>&
+RS_polynomial_generator :: get_mt() const 
+{
+    return mt; 
+}
+
 void
 RS_polynomial_generator ::compute_polynomial()
 {
@@ -134,4 +140,13 @@ RS_polynomial_generator ::compute_polynomial()
 
     for (auto i = 0; i < (int)g.size(); i++)
         g[i] = index_of[g[i]];
+
+    mt.resize((N+1) * r);
+
+    auto* mt_reg = mt.data();
+    for(auto j = 0; j < (int)g.size();++j)
+        mt_reg[j] = 0; 
+    for (auto x = 1; x < N+1; ++x)
+        for (auto j = 0; j < (int)g.size(); ++j)
+            mt_reg[x *(int)g.size() + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
 }
