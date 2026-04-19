@@ -113,8 +113,8 @@ void
 Galois<I>::select_polynomial()
 {
     p[0] = p[m] = 1;      
-    static const std::array<std::vector<int>, 21> extra = []{
-        std::array<std::vector<int>, 21> tbl{};
+    static const std::array<std::vector<I>, 21> extra = []{
+        std::array<std::vector<I>, 21> tbl{};
         tbl[2]  = {1};
         tbl[3]  = {1};
         tbl[4]  = {1};
@@ -137,8 +137,8 @@ Galois<I>::select_polynomial()
         return tbl;
     }();
 
-    if (m >= 2 && m < static_cast<int>(extra.size())) {
-        for (int idx : extra[m]) {
+    if (m >= 2 && m < static_cast<I>(extra.size())) {
+        for (auto idx : extra[m]) {
             p[idx] = 1;
         }
     }
