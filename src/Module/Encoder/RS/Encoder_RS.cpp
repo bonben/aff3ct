@@ -65,12 +65,11 @@ void
 Encoder_RS<B>::__encode(const S* U_K, S* par)
 {
     std::fill(par, par + this->n_rdncy, (S)0);
-    const int* __restrict mt = gf.get_mul_table().data();
     for (int i = this->K_rs - 1; i >= 0; --i) {
-        int feedback = msg[i] ^ par[r-1];
+        int feedback = msg[i] ^ par[this->n_rdncy -1];
         for (int j = this->n_rdncy - 1; j > 0; --j) 
-            par[j] = par[j-1]^mt[feedback * r + j];
-        par[0] = mt[feedback * r];
+            par[j] = par[j-1] ^ mt[feedback*this->n_rdncy + j];
+        par[0] = mt[feedback * this->n_rdncy];
     }
 }
 

@@ -141,12 +141,13 @@ RS_polynomial_generator ::compute_polynomial()
     for (auto i = 0; i < (int)g.size(); i++)
         g[i] = index_of[g[i]];
 
+    auto r = (int) g.size(); 
     mt.resize((N+1) * r);
 
     auto* mt_reg = mt.data();
-    for(auto j = 0; j < (int)g.size();++j)
+    for(auto j = 0; j < r;++j)
         mt_reg[j] = 0; 
     for (auto x = 1; x < N+1; ++x)
-        for (auto j = 0; j < (int)g.size(); ++j)
-            mt_reg[x *(int)g.size() + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
+        for (auto j = 0; j < r; ++j)
+            mt_reg[x *r + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
 }
