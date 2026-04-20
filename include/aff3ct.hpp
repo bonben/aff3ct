@@ -306,6 +306,12 @@
 #ifndef DECODER_BCH_STD
 #include <Module/Decoder/BCH/Standard/Decoder_BCH_std.hpp>
 #endif
+#ifndef DECODER_VITERBI_SIHO_HPP_
+#include <Module/Decoder/Conv/Viterbi/Decoder_Viterbi_SIHO.hpp>
+#endif
+#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
+#include <Module/Decoder/Conv/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
+#endif
 #ifndef DECODER_HIHO_HPP_
 #include <Module/Decoder/Decoder_HIHO.hpp>
 #endif
@@ -549,12 +555,6 @@
 #ifndef DECODER_RSC_DB_BCJR_HPP_
 #include <Module/Decoder/RSC_DB/BCJR/Decoder_RSC_DB_BCJR.hpp>
 #endif
-#ifndef DECODER_VITERBI_SIHO_HPP_
-#include <Module/Decoder/RSC/Viterbi/Decoder_Viterbi_SIHO.hpp>
-#endif
-#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
-#include <Module/Decoder/RSC/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
-#endif
 #ifndef DECODER_RS
 #include <Module/Decoder/RS/Decoder_RS.hpp>
 #endif
@@ -593,6 +593,9 @@
 #endif
 #ifndef ENCODER_BCH_INTER_HPP_
 #include <Module/Encoder/BCH/Encoder_BCH_inter.hpp>
+#endif
+#ifndef ENCODER_CONV_HPP_
+#include <Module/Encoder/Conv/Encoder_conv.hpp>
 #endif
 #ifndef ENCODER_COSET_HPP_
 #include <Module/Encoder/Coset/Encoder_coset.hpp>
