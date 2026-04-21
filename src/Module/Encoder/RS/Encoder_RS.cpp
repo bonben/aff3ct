@@ -66,7 +66,7 @@ Encoder_RS<B>::__encode(const S* U_K, S* par)
 {
     std::fill(par, par + this->n_rdncy, (S)0);
     for (auto i = this->K_rs - 1; i >= 0; --i) {
-        const auto feedback = msg[i] ^ par[this->n_rdncy -1];
+        const auto feedback = U_K[i] ^ par[this->n_rdncy -1];
         for (auto j = this->n_rdncy - 1; j > 0; --j) 
             par[j] = par[j-1] ^ mt[feedback*this->n_rdncy + j];
         par[0] = mt[feedback * this->n_rdncy];
