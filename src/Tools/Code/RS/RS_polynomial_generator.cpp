@@ -149,5 +149,8 @@ RS_polynomial_generator ::compute_polynomial()
     
     for (auto x = 1; x < N + 1; ++x)
         for (auto j = 0; j < 2*t; ++j)
-            mt_reg[(x * 2 * t) + j] = alpha_to[(index_of[g[j]] + index_of[x])%N]; 
+            if (g[j] != -1)
+                mt_reg[(x * 2 * t) + j] = alpha_to[(g[j] + index_of[x]) % N];
+            else
+                mt_reg[(x * 2 * t) + j] = 0;
 }
