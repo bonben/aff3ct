@@ -276,6 +276,7 @@ rst_epilog = """
 .. |CISC|      replace:: :abbr:`CISC     (Complex Instruction Set Computer)`
 .. |CN|        replace:: :abbr:`CN       (Check Node)`
 .. |CNs|       replace:: :abbr:`CNs      (Check Nodes)`
+.. |CONV|      replace:: :abbr:`CONV     (Convolutional)`
 .. |codec|     replace:: :abbr:`codec    (coder/decoder)`
 .. |codecs|    replace:: :abbr:`codecs   (coders/decodes)`
 .. |CP|        replace:: :abbr:`CP       (Chase-Pyndiah)`
