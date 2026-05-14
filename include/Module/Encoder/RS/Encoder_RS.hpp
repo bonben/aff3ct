@@ -33,7 +33,7 @@ class Encoder_RS : public Encoder<B>
     std::vector<S> bb;                // coefficients of redundancy polynomial x^(length-k) i(x) modulo g(x)
     std::vector<S> packed_U_K;        // the source bits packed as GF(m) symbols
     std::vector<S> packed_X_N;        // the encoded bits packed as GF(m) symbols
-  
+
   public:
     // K and N are the RS size in symbols: K_rs and N_rs. K and N in bits are deduced as K = K_rs * m and N = N_rs * M
     Encoder_RS(const int& K, const int& N, const tools::RS_polynomial_generator& GF);

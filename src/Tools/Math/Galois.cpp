@@ -112,33 +112,36 @@ template<typename I>
 void
 Galois<I>::select_polynomial()
 {
-    p[0] = p[m] = 1;      
-    static const std::array<std::vector<I>, 21> extra = []{
+    p[0] = p[m] = 1;
+    static const std::array<std::vector<I>, 21> extra = []
+    {
         std::array<std::vector<I>, 21> tbl{};
-        tbl[2]  = {1};
-        tbl[3]  = {1};
-        tbl[4]  = {1};
-        tbl[5]  = {2};
-        tbl[6]  = {1};
-        tbl[7]  = {1};
-        tbl[8]  = {4,5,6};
-        tbl[9]  = {4};
-        tbl[10] = {3};
-        tbl[11] = {2};
-        tbl[12] = {3,4,7};
-        tbl[13] = {1,3,4};
-        tbl[14] = {1,11,12};
-        tbl[15] = {1};
-        tbl[16] = {2,3,5};
-        tbl[17] = {3};
-        tbl[18] = {7};
-        tbl[19] = {1,5,6};
-        tbl[20] = {3};
+        tbl[2] = { 1 };
+        tbl[3] = { 1 };
+        tbl[4] = { 1 };
+        tbl[5] = { 2 };
+        tbl[6] = { 1 };
+        tbl[7] = { 1 };
+        tbl[8] = { 4, 5, 6 };
+        tbl[9] = { 4 };
+        tbl[10] = { 3 };
+        tbl[11] = { 2 };
+        tbl[12] = { 3, 4, 7 };
+        tbl[13] = { 1, 3, 4 };
+        tbl[14] = { 1, 11, 12 };
+        tbl[15] = { 1 };
+        tbl[16] = { 2, 3, 5 };
+        tbl[17] = { 3 };
+        tbl[18] = { 7 };
+        tbl[19] = { 1, 5, 6 };
+        tbl[20] = { 3 };
         return tbl;
     }();
 
-    if (m >= 2 && m < static_cast<I>(extra.size())) {
-        for (auto idx : extra[m]) {
+    if (m >= 2 && m < static_cast<I>(extra.size()))
+    {
+        for (auto idx : extra[m])
+        {
             p[idx] = 1;
         }
     }
