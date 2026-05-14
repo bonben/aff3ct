@@ -218,6 +218,7 @@ test-regression:
   parallel:
     matrix:
       - { CODE: BCH,       RESULT: bch }
+      - { CODE: CONV,      RESULT: conv }
       - { CODE: LDPC,      RESULT: ldpc }
       - { CODE: POLAR,     RESULT: polar }
       - { CODE: POLAR_MK,  RESULT: polar-mk }
