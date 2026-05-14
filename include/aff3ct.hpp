@@ -162,9 +162,6 @@
 #ifndef FACTORY_CODEC_BCH_HPP
 #include <Factory/Tools/Codec/BCH/Codec_BCH.hpp>
 #endif
-#ifndef FACTORY_CODEC_CONV_HPP
-#include <Factory/Tools/Codec/Conv/Codec_conv.hpp>
-#endif
 #ifndef FACTORY_CODEC_HIHO_HPP_
 #include <Factory/Tools/Codec/Codec_HIHO.hpp>
 #endif
@@ -176,6 +173,9 @@
 #endif
 #ifndef FACTORY_CODEC_SISO_HPP_
 #include <Factory/Tools/Codec/Codec_SISO.hpp>
+#endif
+#ifndef FACTORY_CODEC_CONV_HPP
+#include <Factory/Tools/Codec/Conv/Codec_conv.hpp>
 #endif
 #ifndef FACTORY_CODEC_LDPC_HPP
 #include <Factory/Tools/Codec/LDPC/Codec_LDPC.hpp>
@@ -914,6 +914,9 @@
 #endif
 #ifndef CODEC_SISO_HPP_
 #include <Tools/Codec/Codec_SISO.hpp>
+#endif
+#ifndef CODEC_CONV_HPP_
+#include <Tools/Codec/Conv/Codec_conv.hpp>
 #endif
 #ifndef CODEC_LDPC_HPP_
 #include <Tools/Codec/LDPC/Codec_LDPC.hpp>
