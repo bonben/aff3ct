@@ -24,6 +24,9 @@
 #ifndef FACTORY_DECODER_BCH_HPP
 #include <Factory/Module/Decoder/BCH/Decoder_BCH.hpp>
 #endif
+#ifndef FACTORY_DECODER_CONV_HPP
+#include <Factory/Module/Decoder/Conv/Decoder_conv.hpp>
+#endif
 #ifndef FACTORY_DECODER_HPP_
 #include <Factory/Module/Decoder/Decoder.hpp>
 #endif
@@ -68,6 +71,9 @@
 #endif
 #ifndef FACTORY_ENCODER_BCH_HPP
 #include <Factory/Module/Encoder/BCH/Encoder_BCH.hpp>
+#endif
+#ifndef FACTORY_ENCODER_CONV_HPP
+#include <Factory/Module/Encoder/Conv/Encoder_conv.hpp>
 #endif
 #ifndef FACTORY_ENCODER_HPP
 #include <Factory/Module/Encoder/Encoder.hpp>
@@ -155,6 +161,9 @@
 #endif
 #ifndef FACTORY_CODEC_BCH_HPP
 #include <Factory/Tools/Codec/BCH/Codec_BCH.hpp>
+#endif
+#ifndef FACTORY_CODEC_CONV_HPP
+#include <Factory/Tools/Codec/Conv/Codec_conv.hpp>
 #endif
 #ifndef FACTORY_CODEC_HIHO_HPP_
 #include <Factory/Tools/Codec/Codec_HIHO.hpp>

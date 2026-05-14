@@ -19,6 +19,8 @@ Encoder_conv<B>::Encoder_conv(const int K, const int N, const std::vector<int>& 
 {
     const std::string name = "Encoder_conv";
     this->set_name(name);
+    for (auto& t : this->tasks)
+        t->set_replicability(true);
 
     if (n_poly < 2)
     {
@@ -65,6 +67,15 @@ Encoder_conv<B>::Encoder_conv(const int K, const int N, const std::vector<int>& 
         this->info_bits_pos[k] = n_poly * k;
 
     build_tables();
+}
+
+template<typename B>
+Encoder_conv<B>*
+Encoder_conv<B>::clone() const
+{
+    auto m = new Encoder_conv(*this);
+    m->deep_copy(*this);
+    return m;
 }
 
 template<typename B>

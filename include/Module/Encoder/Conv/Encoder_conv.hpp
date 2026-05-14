@@ -31,6 +31,8 @@ class Encoder_conv
     Encoder_conv(const int K, const int N, const std::vector<int>& poly);
     virtual ~Encoder_conv() = default;
 
+    virtual Encoder_conv<B>* clone() const;
+
     int tail_length() const override;
     std::vector<std::vector<int>> get_trellis() override;
 

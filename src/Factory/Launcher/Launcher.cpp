@@ -10,6 +10,7 @@
 
 #include "Factory/Launcher/Launcher.hpp"
 #include "Launcher/Code/BCH/BCH.hpp"
+#include "Launcher/Code/Conv/Conv.hpp"
 #include "Launcher/Code/LDPC/LDPC.hpp"
 #include "Launcher/Code/Polar/Polar.hpp"
 #include "Launcher/Code/Polar_MK/Polar_MK.hpp"
@@ -73,6 +74,7 @@ Launcher ::get_description(cli::Argument_map_info& args) const
                                                 "RA",
                                                 "RSC",
                                                 "RSC_DB",
+                                                "CONV",
                                                 "BCH",
                                                 "UNCODED",
                                                 "RS")),
@@ -250,6 +252,11 @@ Launcher ::build(const int argc, const char** argv) const
     {
         if (this->sim_type == "BFER") return new launcher::RSC_DB<launcher::BFER_std<B, R, Q>, B, R, Q>(argc, argv);
         if (this->sim_type == "BFERI") return new launcher::RSC_DB<launcher::BFER_ite<B, R, Q>, B, R, Q>(argc, argv);
+    }
+
+    if (this->cde_type == "CONV")
+    {
+        if (this->sim_type == "BFER") return new launcher::Conv<launcher::BFER_std<B, R, Q>, B, R, Q>(argc, argv);
     }
 
     if (this->cde_type == "TURBO")
