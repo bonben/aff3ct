@@ -63,12 +63,11 @@ release = label
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinxcontrib.bibtex',
     'sphinxcontrib.rsvgconverter',
-    'm2r',
+    'myst_parser',
 ]
 
 if buildername != "latex":
@@ -81,8 +80,18 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+html_sidebars = {
+    "**": [
+        "sidebar/brand.html",
+        "sidebar/search.html",
+        "sidebar/navigation.html",
+    ]
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -107,27 +116,27 @@ pygments_style = None
 
 # -- Options for HTML output -------------------------------------------------
 
-import sphinx_rtd_theme
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'furo'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 # see here for description : https://sphinx-rtd-theme.readthedocs.io/en/latest/configuring.html#html-theme-options
-# TODO : Why the compilation fails the first time ???? -> the second time is good.
 html_theme_options = {
-    'canonical_url': '', # to help search engines with duplicated versions of the doc -> TODO
-    'style_external_links': False, # Add an icon next to external links.
-    'display_version': True, # the version number shown at the top of the sidebar
-    # Toc options
-    'navigation_depth' : -1,
-    'collapse_navigation': True,
-    'sticky_navigation': True,
-    'includehidden': False,
-    'titles_only': False
+    "sidebar_hide_name": False,
+    "navigation_with_keys": True,
+
+    # colors (optionnal but recommanded)
+    "light_css_variables": {
+        "color-brand-primary": "#2563eb",
+        "color-brand-content": "#2563eb",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#60a5fa",
+        "color-brand-content": "#60a5fa",
+    },
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
