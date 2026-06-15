@@ -51,6 +51,7 @@ class Decoder_polar_PT_SCL_naive
   : public Decoder_SIHO<B, R>
   , public tools::Interface_get_set_pretransform
   , public tools::Interface_get_set_dynamic_frozen_bits
+  , public tools::Interface_get_set_frozen_bits
 {
   protected:
     const int m;         // graph depth
