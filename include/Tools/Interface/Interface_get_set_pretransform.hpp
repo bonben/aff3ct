@@ -19,9 +19,6 @@ class Interface_get_set_pretransform
   public:
     virtual void set_pretransform(const std::map<uint32_t, std::vector<uint32_t>>& pretransform) = 0;
     virtual const std::map<uint32_t, std::vector<uint32_t>>& get_pretransform() const = 0;
-
-    virtual void set_frozen_bits(const std::vector<bool>& frozen_bits) = 0;
-    virtual const std::vector<bool>& get_frozen_bits() const = 0;
 };
 }
 }

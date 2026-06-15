@@ -197,8 +197,8 @@ Codec_polar_PT<B, Q>::set_frozen_bits(const std::vector<bool>& frozen_bits)
     // for (const auto& f : frozen_bits)
     // std::cout << (int)f << ",";
     // std::cout << std::endl;
-    if (this->pt_decoder) this->pt_decoder->set_frozen_bits(frozen_bits);
-    if (this->pt_encoder) this->pt_encoder->set_frozen_bits(frozen_bits);
+    if (this->fb_decoder) this->fb_decoder->set_frozen_bits(frozen_bits);
+    if (this->fb_encoder) this->fb_encoder->set_frozen_bits(frozen_bits);
 }
 
 template<typename B, typename Q>

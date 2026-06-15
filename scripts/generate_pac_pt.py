@@ -37,6 +37,11 @@ def write_aff3ct_rateprofile(N, fileName, rate_profile, ebno="*"):
 
 
 def compute_pct(T, I):
+    """
+    This algorithm is based on the algorithm presented in [1].
+
+    [1] Guo, Yuanxin, Zihan Tang, and Bin Li. "On the Equivalence between Pre-transformed and Parity-check Monomial Codes." ISTC. 2021.
+    """
     import galois
 
     GF2 = galois.GF(2)
