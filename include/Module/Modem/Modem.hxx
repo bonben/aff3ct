@@ -66,6 +66,13 @@ Modem<B, R, Q>::operator[](const mdm::sck::tdemodulate_wg s)
 }
 
 template<typename B, typename R, typename Q>
+spu::runtime::Socket&
+Modem<B, R, Q>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename R, typename Q>
 Modem<B, R, Q>::Modem(const int N, const int N_mod, const int N_fil)
   : spu::module::Stateful()
   , N(N)

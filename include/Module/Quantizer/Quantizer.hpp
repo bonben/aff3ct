@@ -50,6 +50,7 @@ class Quantizer : public spu::module::Stateful
   public:
     inline spu::runtime::Task& operator[](const qnt::tsk t);
     inline spu::runtime::Socket& operator[](const qnt::sck::process s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int N; /*!< Size of one frame (= number of bits in one frame) */

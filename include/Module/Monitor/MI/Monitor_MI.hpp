@@ -25,6 +25,7 @@ class Monitor_MI : public Monitor
   public:
     inline spu::runtime::Task& operator[](const mnt::tsk t);
     inline spu::runtime::Socket& operator[](const mnt::sck::get_mutual_info s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     struct Attributes

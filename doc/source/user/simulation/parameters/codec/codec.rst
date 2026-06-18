@@ -9,9 +9,11 @@ Codec parameters
 
    common/codec
    bch/codec
+   conv/codec
    ldpc/codec
    polar/codec
    polar_mk/codec
+   polar_pac/codec
    ra/codec
    rep/codec
    rs/codec

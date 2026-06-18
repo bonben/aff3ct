@@ -23,6 +23,13 @@ Monitor_MI<B, R>::operator[](const mnt::sck::get_mutual_info s)
 }
 
 template<typename B, typename R>
+spu::runtime::Socket&
+Monitor_MI<B, R>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename R>
 template<class AB, class AR>
 R
 Monitor_MI<B, R>::get_mutual_info(const std::vector<B, AB>& X,

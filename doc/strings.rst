@@ -360,6 +360,11 @@
 .. |factory::Decoder_polar_MK::p+node-type| replace::
    Select the type of computations to make in the decoding functions.
 
+.. --------------------------------------- factory Decoder_polar_PAC parameters
+
+.. |factory::Decoder_polar_PAC::p+lists,L| replace::
+   Set the number of lists to maintain in the |SCL| decoder.
+
 .. ---------------------------------------------- factory Decoder_RA parameters
 
 .. |factory::Decoder_RA::p+ite,i| replace::
@@ -375,6 +380,15 @@
 .. |factory::Decoder_RS::p+corr-pow,T| replace::
    Set the correction power of the |RS| decoder. This value corresponds to the
    number of symbols errors that the decoder is able to correct.
+
+.. -------------------------------------------- factory Decoder_conv parameters
+
+.. |factory::Decoder_conv::p+poly| replace::
+   Set the polynomials describing the feedforward convolutional code, should
+   be of the form "{A,B}".
+
+.. |factory::Decoder_conv::p+lists,L| replace::
+   Set the number of lists to maintain in the |PLVA| decoder.
 
 .. --------------------------------------------- factory Decoder_RSC parameters
 
@@ -528,7 +542,19 @@
    Enable systematic encoding. By default the encoding process is
    non-systematic.
 
+.. --------------------------------------- factory Encoder_polar_PAC parameters
+
+.. |factory::Encoder_polar_PAC::p+conv| replace::
+   Define the convolutionnal code (ex.: "0o33").
+
 .. ---------------------------------------------- factory Encoder_RA parameters
+
+.. -------------------------------------------- factory Encoder_conv parameters
+
+.. |factory::Encoder_conv::p+poly| replace::
+   Set the polynomials that define the feedforward convolutional code (or the
+   trellis structure). The expected form is :math:`\{A,B\}` where :math:`A`
+   and :math:`B` are given in octal.
 
 .. -------------------------------------- factory Encoder_repetition parameters
 

@@ -5,6 +5,7 @@
 #include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_5G.hpp"
 #include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_BEC.hpp"
 #include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_GA_Arikan.hpp"
+#include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_RM.hpp"
 #include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_TV.hpp"
 #include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_file.hpp"
 #include "Tools/Documentation/documentation.h"
@@ -46,7 +47,7 @@ Frozenbits_generator ::get_description(cli::Argument_map_info& args) const
     tools::add_arg(args, p, class_name + "p+noise", cli::Real(cli::Positive(), cli::Non_zero()));
 
     tools::add_arg(
-      args, p, class_name + "p+gen-method", cli::Text(cli::Including_set("GA", "FILE", "5G", "TV", "BEC")));
+      args, p, class_name + "p+gen-method", cli::Text(cli::Including_set("GA", "FILE", "5G", "TV", "BEC", "RM")));
 
     tools::add_arg(args, p, class_name + "p+awgn-path", cli::Path(cli::openmode::read));
 
@@ -101,6 +102,7 @@ Frozenbits_generator ::build() const
     if (this->type == "FILE") return new tools::Frozenbits_generator_file(this->K, this->N_cw, this->path_fb);
     if (this->type == "5G") return new tools::Frozenbits_generator_5G(this->K, this->N_cw);
     if (this->type == "BEC") return new tools::Frozenbits_generator_BEC(this->K, this->N_cw, this->dump_channels_path);
+    if (this->type == "RM") return new tools::Frozenbits_generator_RM(this->K, this->N_cw);
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }

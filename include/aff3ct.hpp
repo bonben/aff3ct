@@ -24,6 +24,9 @@
 #ifndef FACTORY_DECODER_BCH_HPP
 #include <Factory/Module/Decoder/BCH/Decoder_BCH.hpp>
 #endif
+#ifndef FACTORY_DECODER_CONV_HPP
+#include <Factory/Module/Decoder/Conv/Decoder_conv.hpp>
+#endif
 #ifndef FACTORY_DECODER_HPP_
 #include <Factory/Module/Decoder/Decoder.hpp>
 #endif
@@ -38,6 +41,9 @@
 #endif
 #ifndef FACTORY_DECODER_POLAR_MK_HPP
 #include <Factory/Module/Decoder/Polar_MK/Decoder_polar_MK.hpp>
+#endif
+#ifndef FACTORY_DECODER_POLAR_PAC_HPP
+#include <Factory/Module/Decoder/Polar_PAC/Decoder_polar_PAC.hpp>
 #endif
 #ifndef FACTORY_DECODER_RA_HPP
 #include <Factory/Module/Decoder/RA/Decoder_RA.hpp>
@@ -66,6 +72,9 @@
 #ifndef FACTORY_ENCODER_BCH_HPP
 #include <Factory/Module/Encoder/BCH/Encoder_BCH.hpp>
 #endif
+#ifndef FACTORY_ENCODER_CONV_HPP
+#include <Factory/Module/Encoder/Conv/Encoder_conv.hpp>
+#endif
 #ifndef FACTORY_ENCODER_HPP
 #include <Factory/Module/Encoder/Encoder.hpp>
 #endif
@@ -80,6 +89,9 @@
 #endif
 #ifndef FACTORY_ENCODER_POLAR_MK_HPP
 #include <Factory/Module/Encoder/Polar_MK/Encoder_polar_MK.hpp>
+#endif
+#ifndef FACTORY_ENCODER_POLAR_PAC_HPP
+#include <Factory/Module/Encoder/Polar_PAC/Encoder_polar_PAC.hpp>
 #endif
 #ifndef FACTORY_ENCODER_RA_HPP
 #include <Factory/Module/Encoder/RA/Encoder_RA.hpp>
@@ -162,6 +174,9 @@
 #ifndef FACTORY_CODEC_SISO_HPP_
 #include <Factory/Tools/Codec/Codec_SISO.hpp>
 #endif
+#ifndef FACTORY_CODEC_CONV_HPP
+#include <Factory/Tools/Codec/Conv/Codec_conv.hpp>
+#endif
 #ifndef FACTORY_CODEC_LDPC_HPP
 #include <Factory/Tools/Codec/LDPC/Codec_LDPC.hpp>
 #endif
@@ -170,6 +185,9 @@
 #endif
 #ifndef FACTORY_CODEC_POLAR_MK_HPP
 #include <Factory/Tools/Codec/Polar_MK/Codec_polar_MK.hpp>
+#endif
+#ifndef FACTORY_CODEC_POLAR_PAC_HPP
+#include <Factory/Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp>
 #endif
 #ifndef FACTORY_CODEC_RA_HPP
 #include <Factory/Tools/Codec/RA/Codec_RA.hpp>
@@ -297,6 +315,12 @@
 #ifndef DECODER_BCH_STD
 #include <Module/Decoder/BCH/Standard/Decoder_BCH_std.hpp>
 #endif
+#ifndef DECODER_VITERBI_SIHO_HPP_
+#include <Module/Decoder/Conv/Viterbi/Decoder_Viterbi_SIHO.hpp>
+#endif
+#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
+#include <Module/Decoder/Conv/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
+#endif
 #ifndef DECODER_HIHO_HPP_
 #include <Module/Decoder/Decoder_HIHO.hpp>
 #endif
@@ -404,6 +428,9 @@
 #endif
 #ifndef DECODER_POLAR_MK_SCL_NAIVE_SYS
 #include <Module/Decoder/Polar_MK/SCL/Decoder_polar_MK_SCL_naive_sys.hpp>
+#endif
+#ifndef DECODER_POLAR_PAC_SCL_NAIVE
+#include <Module/Decoder/Polar_PAC/SCL/Decoder_polar_PAC_SCL_naive.hpp>
 #endif
 #ifndef DECODER_POLAR_SCAN_NAIVE_H_
 #include <Module/Decoder/Polar/SCAN/Decoder_polar_SCAN_naive.hpp>
@@ -537,12 +564,6 @@
 #ifndef DECODER_RSC_DB_BCJR_HPP_
 #include <Module/Decoder/RSC_DB/BCJR/Decoder_RSC_DB_BCJR.hpp>
 #endif
-#ifndef DECODER_VITERBI_SIHO_HPP_
-#include <Module/Decoder/RSC/Viterbi/Decoder_Viterbi_SIHO.hpp>
-#endif
-#ifndef DECODER_VITERBI_LIST_PARALLEL_HPP_
-#include <Module/Decoder/RSC/Viterbi_list/Decoder_Viterbi_list_parallel.hpp>
-#endif
 #ifndef DECODER_RS
 #include <Module/Decoder/RS/Decoder_RS.hpp>
 #endif
@@ -581,6 +602,9 @@
 #endif
 #ifndef ENCODER_BCH_INTER_HPP_
 #include <Module/Encoder/BCH/Encoder_BCH_inter.hpp>
+#endif
+#ifndef ENCODER_CONV_HPP_
+#include <Module/Encoder/Conv/Encoder_conv.hpp>
 #endif
 #ifndef ENCODER_COSET_HPP_
 #include <Module/Encoder/Coset/Encoder_coset.hpp>
@@ -623,6 +647,9 @@
 #endif
 #ifndef ENCODER_POLAR_MK_SYS_HPP_
 #include <Module/Encoder/Polar_MK/Encoder_polar_MK_sys.hpp>
+#endif
+#ifndef ENCODER_POLAR_PAC_HPP_
+#include <Module/Encoder/Polar_PAC/Encoder_polar_PAC.hpp>
 #endif
 #ifndef ENCODER_RA_HPP_
 #include <Module/Encoder/RA/Encoder_RA.hpp>
@@ -897,6 +924,9 @@
 #ifndef CODEC_SISO_HPP_
 #include <Tools/Codec/Codec_SISO.hpp>
 #endif
+#ifndef CODEC_CONV_HPP_
+#include <Tools/Codec/Conv/Codec_conv.hpp>
+#endif
 #ifndef CODEC_LDPC_HPP_
 #include <Tools/Codec/LDPC/Codec_LDPC.hpp>
 #endif
@@ -917,6 +947,9 @@
 #endif
 #ifndef CODEC_POLAR_MK_HPP_
 #include <Tools/Codec/Polar_MK/Codec_polar_MK.hpp>
+#endif
+#ifndef CODEC_POLAR_PAC_HPP_
+#include <Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp>
 #endif
 #ifndef CODEC_RA_HPP_
 #include <Tools/Codec/RA/Codec_RA.hpp>
@@ -1061,6 +1094,9 @@
 #endif
 #ifndef FROZENBITS_GENERATOR_HPP_
 #include <Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator.hpp>
+#endif
+#ifndef FROZENBITS_GENERATOR_RM_HPP_
+#include <Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_RM.hpp>
 #endif
 #ifndef FROZENBITS_GENERATOR_TV_HPP_
 #include <Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator_TV.hpp>

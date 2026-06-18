@@ -1,6 +1,7 @@
 *.gitignore*
 
 .cproject
+.cache
 .project
 .pydevproject
 .settings
@@ -16,6 +17,7 @@ CMakeSettings.json
 
 .scannerwork/
 build*/
+Debug*/
 cmake-build*/
 cppcheck/
 src/Tools/version.cpp
@@ -29,5 +31,8 @@ doc/output/
 scripts/abi/aff3ct_ast.txt
 scripts/abi/db.json
 scripts/abi/db_summary.txt
+testing/
+run*.sh
+compile_commands.json
 
 __pycache__/

@@ -110,6 +110,7 @@ class Modem : public spu::module::Stateful
     inline spu::runtime::Socket& operator[](const mdm::sck::tdemodulate s);
     inline spu::runtime::Socket& operator[](const mdm::sck::demodulate_wg s);
     inline spu::runtime::Socket& operator[](const mdm::sck::tdemodulate_wg s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int N; /*!< Size of one frame (= number of bits in one frame) */

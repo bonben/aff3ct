@@ -177,7 +177,7 @@ if (AFF3CT_INCLUDE_SPU_LIB)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/CMakeLists.txt")
         option(SPU_COMPILE_STATIC_LIB "" OFF)
         option(SPU_COMPILE_SHARED_LIB "" OFF)
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/ EXCLUDE_FROM_ALL)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/)
         message(STATUS "AFF3CT - Sub-project found: StreamPU")
     else()
         message(FATAL_ERROR "AFF3CT - StreamPU can't be found, try to init the submodule with the following cmd:\n"
@@ -386,7 +386,7 @@ if(AFF3CT_INCLUDE_SPU_LIB)
     aff3ct_target_include_directories(PUBLIC  "lib/streampu/include"              "streampu")
     aff3ct_target_include_directories(PRIVATE "lib/streampu/src"                  "streampu")
     aff3ct_target_include_directories(PUBLIC  "lib/streampu/lib/rang/include"     "rang"    )
-    aff3ct_target_include_directories(PUBLIC  "lib/streampu/lib/cpptrace/include" "cpptrace")
+    aff3ct_target_include_directories(PRIVATE "lib/streampu/lib/cpptrace/include" "cpptrace")
     aff3ct_target_include_directories(PUBLIC  "lib/streampu/lib/json/include"     "json"    )
 endif()
 
@@ -399,9 +399,9 @@ if(MSVC)
 endif()
 
 # MIPP
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/src/mipp.h")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/include/mipp.h")
     aff3ct_target_compile_definitions(PUBLIC MIPP_ENABLE_BACKTRACE)
-    aff3ct_target_include_directories(PUBLIC "lib/MIPP/src" "MIPP")
+    aff3ct_target_include_directories(PUBLIC "lib/MIPP/include" "MIPP")
     message(STATUS "AFF3CT - Header found: MIPP")
 else()
     message(FATAL_ERROR "AFF3CT - MIPP can't be found, try to init the submodule with the following cmd:\n"
@@ -642,11 +642,11 @@ if (AFF3CT_COMPILE_SHARED_LIB OR AFF3CT_COMPILE_STATIC_LIB)
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/date
             COMPONENT headers
             FILES_MATCHING PATTERN "*.h")
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/src/"
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/include/"
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/MIPP
             COMPONENT headers
             FILES_MATCHING PATTERN "*.h")
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/src/"
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/MIPP/include/"
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/MIPP
             COMPONENT headers
             FILES_MATCHING PATTERN "*.hxx")
@@ -673,18 +673,14 @@ if (AFF3CT_COMPILE_SHARED_LIB OR AFF3CT_COMPILE_STATIC_LIB)
                 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/streampu
                 COMPONENT headers
                 FILES_MATCHING PATTERN "*.hxx")
-
         install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/lib/rang/include/"
                 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/rang
                 COMPONENT headers
                 FILES_MATCHING PATTERN "*.hpp")
-
-        if(SPU_STACKTRACE OR SPU_STACKTRACE_SEGFAULT)
-            install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/lib/cpptrace/include/"
-                    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/cpptrace
-                    COMPONENT headers
-                    FILES_MATCHING PATTERN "*.hpp")
-        endif()
+        install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/lib/json/single_include/"
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/json
+                COMPONENT headers
+                FILES_MATCHING PATTERN "*.hpp")
     endif()
 endif()
 

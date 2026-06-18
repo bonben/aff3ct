@@ -51,6 +51,7 @@ class Encoder
   public:
     inline spu::runtime::Task& operator[](const enc::tsk t);
     inline spu::runtime::Socket& operator[](const enc::sck::encode s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int K;                         /*!< Number of information bits in one frame */

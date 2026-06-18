@@ -31,6 +31,13 @@ Channel<R>::operator[](const chn::sck::add_noise_wg s)
 }
 
 template<typename R>
+spu::runtime::Socket&
+Channel<R>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename R>
 Channel<R>::Channel(const int N)
   : spu::module::Stateful()
   , N(N)

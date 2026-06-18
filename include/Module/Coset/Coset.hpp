@@ -51,6 +51,7 @@ class Coset : public spu::module::Stateful
   public:
     inline spu::runtime::Task& operator[](const cst::tsk t);
     inline spu::runtime::Socket& operator[](const cst::sck::apply s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int size; /*!< Size of the input data */

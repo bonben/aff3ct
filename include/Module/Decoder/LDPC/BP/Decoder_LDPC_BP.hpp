@@ -6,6 +6,7 @@
 #define DECODER_LDPC_BP_HPP_
 
 #include "Tools/Algo/Matrix/Sparse_matrix/Sparse_matrix.hpp"
+#include "Tools/Code/LDPC/Syndrome/LDPC_syndrome.hpp"
 
 namespace aff3ct
 {
@@ -31,10 +32,10 @@ class Decoder_LDPC_BP
 
     virtual ~Decoder_LDPC_BP() = default;
 
-    template<typename R>
+    template<typename R, class Syndrome_checker = tools::LDPC_syndrome>
     inline bool check_syndrome_soft(const R* Y_N);
 
-    template<typename B>
+    template<typename B, class Syndrome_checker = tools::LDPC_syndrome>
     inline bool check_syndrome_hard(const B* V_N);
 };
 }

@@ -2,9 +2,11 @@
 
 #include "Factory/Tools/Codec/BCH/Codec_BCH.hpp"
 #include "Factory/Tools/Codec/Codec_SIHO.hpp"
+#include "Factory/Tools/Codec/Conv/Codec_conv.hpp"
 #include "Factory/Tools/Codec/LDPC/Codec_LDPC.hpp"
 #include "Factory/Tools/Codec/Polar/Codec_polar.hpp"
 #include "Factory/Tools/Codec/Polar_MK/Codec_polar_MK.hpp"
+#include "Factory/Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp"
 #include "Factory/Tools/Codec/RA/Codec_RA.hpp"
 #include "Factory/Tools/Codec/RS/Codec_RS.hpp"
 #include "Factory/Tools/Codec/RSC/Codec_RSC.hpp"
@@ -35,9 +37,13 @@ template<typename B, typename Q>
 tools::Codec_SIHO<B, Q>*
 Codec_SIHO ::build(const module::CRC<B>* crc) const
 {
+
     if (get_name() == Codec_BCH_name) return dynamic_cast<const Codec_BCH&>(*this).template build<B, Q>(crc);
+    if (get_name() == Codec_conv_name) return dynamic_cast<const Codec_conv&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_LDPC_name) return dynamic_cast<const Codec_LDPC&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_polar_name) return dynamic_cast<const Codec_polar&>(*this).template build<B, Q>(crc);
+    if (get_name() == Codec_polar_PAC_name)
+        return dynamic_cast<const Codec_polar_PAC&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_polar_MK_name) return dynamic_cast<const Codec_polar_MK&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_RA_name) return dynamic_cast<const Codec_RA&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_repetition_name)

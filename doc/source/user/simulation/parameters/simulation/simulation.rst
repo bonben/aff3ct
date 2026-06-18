@@ -55,9 +55,9 @@ Description of the allowed values:
 """"""""""""""""""""""""""""""""""""""""""""""""
 
    :Type: text
-   :Allowed values: ``BCH`` ``LDPC`` ``POLAR`` ``POLAR_MK`` ``RA`` ``REP``
-                    ``RS`` ``RSC`` ``RSC_DB`` ``TURBO`` ``TURBO_DB``
-                    ``TURBO_PROD`` ``UNCODED``
+   :Allowed values: ``BCH`` ``CONV`` ``LDPC`` ``POLAR`` ``POLAR_MK``
+                    ``POLAR_PAC`` ``RA`` ``REP`` ``RS`` ``RSC`` ``RSC_DB``
+                    ``TURBO`` ``TURBO_DB`` ``TURBO_PROD`` ``UNCODED``
    :Examples: ``-C BCH``
 
 |factory::Launcher::p+cde-type,C|
@@ -71,6 +71,7 @@ Description of the allowed values:
 .. _Repetition: https://en.wikipedia.org/wiki/Repetition_code
 .. _Reed-Solomon: https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction
 .. _Recursive Systematic Convolutional: https://en.wikipedia.org/wiki/Convolutional_code
+.. _Convolutional: https://en.wikipedia.org/wiki/Convolutional_code
 .. _Turbo: https://en.wikipedia.org/wiki/Turbo_code
 .. _Turbo Product: http://www.ieee802.org/16/tutorial/80216t-00_01.pdf
 
@@ -79,12 +80,17 @@ Description of the allowed values:
 +================+=============================================================+
 | ``BCH``        | The `Bose–Chaudhuri–Hocquenghem`_ codes :cite:`Bose1960`.   |
 +----------------+-------------------------------------------------------------+
+| ``CONV``       | Feedforward `Convolutional`_ codes (rate 1/2).              |
++----------------+-------------------------------------------------------------+
 | ``LDPC``       | The `Low-Density Parity-Check`_ codes                       |
 |                | :cite:`Gallager1963,MacKay1995a`.                           |
 +----------------+-------------------------------------------------------------+
 | ``POLAR``      | The `Polar`_ codes :cite:`Arikan2009b`.                     |
 +----------------+-------------------------------------------------------------+
 | ``POLAR_MK``   | The Polar mono- or multi-kernel codes :cite:`Benammar2017`. |
++----------------+-------------------------------------------------------------+
+| ``POLAR_PAC``  | The Polarization-Adjusted Convolutional                     |
+|                | codes :cite:`Arikan2019`.                                   |
 +----------------+-------------------------------------------------------------+
 | ``RA``         | The `Repeat Accumulate`_ codes :cite:`Divsalar1998`.        |
 +----------------+-------------------------------------------------------------+

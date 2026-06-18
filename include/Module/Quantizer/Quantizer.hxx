@@ -23,6 +23,13 @@ Quantizer<R, Q>::operator[](const qnt::sck::process s)
 }
 
 template<typename R, typename Q>
+spu::runtime::Socket&
+Quantizer<R, Q>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename R, typename Q>
 Quantizer<R, Q>::Quantizer(const int N)
   : spu::module::Stateful()
   , N(N)

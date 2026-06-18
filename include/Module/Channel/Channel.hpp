@@ -64,6 +64,7 @@ class Channel
     inline spu::runtime::Task& operator[](const chn::tsk t);
     inline spu::runtime::Socket& operator[](const chn::sck::add_noise s);
     inline spu::runtime::Socket& operator[](const chn::sck::add_noise_wg s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int N;                // Size of one frame (= number of bits in one frame)

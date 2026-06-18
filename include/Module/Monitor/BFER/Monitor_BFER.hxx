@@ -30,6 +30,13 @@ Monitor_BFER<B>::operator[](const mnt::sck::check_errors2 s)
 }
 
 template<typename B>
+spu::runtime::Socket&
+Monitor_BFER<B>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B>
 template<class A>
 int
 Monitor_BFER<B>::check_errors(const std::vector<B, A>& U,

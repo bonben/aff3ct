@@ -33,6 +33,13 @@ Decoder_HIHO<B>::operator[](const dec::sck::decode_hiho_cw s)
 }
 
 template<typename B>
+spu::runtime::Socket&
+Decoder_HIHO<B>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B>
 Decoder_HIHO<B>::Decoder_HIHO(const int K, const int N)
   : Decoder(K, N)
 {

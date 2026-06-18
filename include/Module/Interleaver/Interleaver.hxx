@@ -45,6 +45,13 @@ Interleaver<D, T>::operator[](const itl::sck::deinterleave_reordering s)
 }
 
 template<typename D, typename T>
+spu::runtime::Socket&
+Interleaver<D, T>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename D, typename T>
 Interleaver<D, T>::Interleaver(const tools::Interleaver_core<T>& core)
   : spu::module::Stateful()
   , core(core)

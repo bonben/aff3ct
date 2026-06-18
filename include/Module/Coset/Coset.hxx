@@ -23,6 +23,13 @@ Coset<B, D>::operator[](const cst::sck::apply s)
 }
 
 template<typename B, typename D>
+spu::runtime::Socket&
+Coset<B, D>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename D>
 Coset<B, D>::Coset(const int size)
   : spu::module::Stateful()
   , size(size)

@@ -57,6 +57,7 @@ class Puncturer : public spu::module::Stateful
     inline spu::runtime::Task& operator[](const pct::tsk t);
     inline spu::runtime::Socket& operator[](const pct::sck::puncture s);
     inline spu::runtime::Socket& operator[](const pct::sck::depuncture s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int K;    /*!< Number of information bits in one frame */

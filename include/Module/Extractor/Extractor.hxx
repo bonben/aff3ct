@@ -44,6 +44,13 @@ Extractor<B, Q>::operator[](const ext::sck::add_sys_and_ext_llr s)
 }
 
 template<typename B, typename Q>
+spu::runtime::Socket&
+Extractor<B, Q>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename Q>
 Extractor<B, Q>::Extractor(const int K, const int N, const int tail_length)
   : spu::module::Stateful()
   , K(K)

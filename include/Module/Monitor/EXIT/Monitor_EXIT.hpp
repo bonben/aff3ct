@@ -23,6 +23,7 @@ class Monitor_EXIT : public Monitor
   public:
     inline spu::runtime::Task& operator[](const mnt::tsk t);
     inline spu::runtime::Socket& operator[](const mnt::sck::check_mutual_info s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     struct Attributes

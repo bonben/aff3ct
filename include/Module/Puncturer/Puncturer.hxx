@@ -30,6 +30,13 @@ Puncturer<B, Q>::operator[](const pct::sck::depuncture s)
 }
 
 template<typename B, typename Q>
+spu::runtime::Socket&
+Puncturer<B, Q>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename Q>
 Puncturer<B, Q>::Puncturer(const int K, const int N, const int N_cw)
   : spu::module::Stateful()
   , K(K)

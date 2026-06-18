@@ -1,3 +1,5 @@
+.. _StreamPU: https://github.com/aff3ct/streampu
+
 .. _user_library:
 
 ****************
@@ -17,8 +19,12 @@ calculated from 0.0 dB to 10.0 dB with a 1.0 dB step.
 
 .. note:: All the following examples of code are available in a dedicated
   GitHub repository: https://github.com/aff3ct/my_project_with_aff3ct. Sometime
-  the full source codes in the repository may slighly differ from the ones
+  the full source codes in the repository may slightly differ from the ones
   on this page, but the philosophy remains the same.
+
+**This documentation is organized into four small, progressive examples. We
+strongly encourage the reader to proceed to the Sequence section (included), as
+this is where the full potential of AFF3CT is unleashed.**
 
 .. _user_library_bootstrap:
 
@@ -29,8 +35,8 @@ The bootstrap example is the easiest way to start using the |AFF3CT| library. It
 is based on ``C++`` classes and methods that operate on buffers. Keep in mind
 that this is the simplest way to use |AFF3CT|, but not the most powerful way.
 More advanced features such as benchmarking, debugging, command line
-interfacing, and more are illustrated in the :ref:`user_library_tasks` and
-:ref:`user_library_factory` examples.
+interfacing, and more are illustrated in the :ref:`user_library_tasks`,
+:ref:`user_library_factory` and :ref:`user_library_sequence` examples.
 
 .. _fig_simple_chain_code:
 
@@ -49,7 +55,7 @@ is a module (green boxes in :numref:`fig_simple_chain_code`).
 	:caption: Bootstrap: main function
 	:name: lst_bootstrap_main
 	:linenos:
-	:emphasize-lines: 6-9,15,31-40
+	:emphasize-lines: 6-9,15,27-36
 
 	#include <aff3ct.hpp>
 	using namespace aff3ct;
@@ -68,14 +74,10 @@ is a module (green boxes in :numref:`fig_simple_chain_code`).
 		for (auto ebn0 = p.ebn0_min; ebn0 < p.ebn0_max; ebn0 += p.ebn0_step)
 		{
 			// compute the current sigma for the channel noise
-			const auto esn0  = tools::ebn0_to_esn0 (ebn0, p.R);
-			const auto sigma = tools::esn0_to_sigma(esn0     );
+			const auto esn0 = tools::ebn0_to_esn0(ebn0, p.R);
+			std::fill(b.sigma.begin(), b.sigma.end(), tools::esn0_to_sigma(esn0));
 
-			u.noise->set_values(sigma, ebn0, esn0);
-
-			// update the sigma of the modem and the channel
-			m.modem  ->set_noise(*u.noise);
-			m.channel->set_noise(*u.noise);
+			u.noise->set_values(b.sigma[0], ebn0, esn0);
 
 			// display the performance (BER and FER) in real time (in a separate thread)
 			u.terminal->start_temp_report();
@@ -83,13 +85,13 @@ is a module (green boxes in :numref:`fig_simple_chain_code`).
 			// run the simulation chain
 			while (!m.monitor->fe_limit_achieved())
 			{
-				m.source ->generate    (                 b.ref_bits     );
-				m.encoder->encode      (b.ref_bits,      b.enc_bits     );
-				m.modem  ->modulate    (b.enc_bits,      b.symbols      );
-				m.channel->add_noise   (b.symbols,       b.noisy_symbols);
-				m.modem  ->demodulate  (b.noisy_symbols, b.LLRs         );
-				m.decoder->decode_siho (b.LLRs,          b.dec_bits     );
-				m.monitor->check_errors(b.dec_bits,      b.ref_bits     );
+				m.source ->generate    (                          b.ref_bits,     b.ref_count);
+				m.encoder->encode      (         b.ref_bits,      b.enc_bits                 );
+				m.modem  ->modulate    (         b.enc_bits,      b.symbols                  );
+				m.channel->add_noise   (b.sigma, b.symbols,       b.noisy_symbols            );
+				m.modem  ->demodulate  (b.sigma, b.noisy_symbols, b.LLRs                     );
+				m.decoder->decode_siho (         b.LLRs,          b.dec_bits                 );
+				m.monitor->check_errors(         b.dec_bits,      b.ref_bits                 );
 			}
 
 			// display the performance (BER and FER) in the terminal
@@ -97,7 +99,6 @@ is a module (green boxes in :numref:`fig_simple_chain_code`).
 
 			// reset the monitor for the next SNR
 			m.monitor->reset();
-			u.terminal->reset();
 		}
 
 		return 0;
@@ -110,7 +111,7 @@ contains the simulation parameters, ``b`` contains the buffers required by
 the modules, ``m`` contains the modules of the communication chain and ``u`` is
 a set of convenient helper objects.
 
-Line ``15`` loops over the desired |SNRs| range. Lines ``31-40``, the ``while``
+Line ``15`` loops over the desired |SNRs| range. Lines ``27-36``, the ``while``
 loop iterates until 100 frame errors have been detected by the monitor. The
 |AFF3CT| communication chain methods are called inside this loop. Each |AFF3CT|
 method works on input(s) and/or output(s) buffer(s) that have been declared at
@@ -155,22 +156,22 @@ and the ``init_params1`` function used at line ``6`` in
 
 	struct modules1
 	{
-		std::unique_ptr<module::Source_random<>>          source;
-		std::unique_ptr<module::Encoder_repetition_sys<>> encoder;
-		std::unique_ptr<module::Modem_BPSK<>>             modem;
-		std::unique_ptr<module::Channel_AWGN_LLR<>>       channel;
-		std::unique_ptr<module::Decoder_repetition_std<>> decoder;
-		std::unique_ptr<module::Monitor_BFER<>>           monitor;
+		std::unique_ptr<spu::module::Source_random<>>          source;
+		std::unique_ptr<     module::Encoder_repetition_sys<>> encoder;
+		std::unique_ptr<     module::Modem_BPSK<>>             modem;
+		std::unique_ptr<     module::Channel_AWGN_LLR<>>       channel;
+		std::unique_ptr<     module::Decoder_repetition_std<>> decoder;
+		std::unique_ptr<     module::Monitor_BFER<>>           monitor;
 	};
 
 	void init_modules1(const params1 &p, modules1 &m)
 	{
-		m.source  = std::unique_ptr<module::Source_random         <>>(new module::Source_random         <>(p.K        ));
-		m.encoder = std::unique_ptr<module::Encoder_repetition_sys<>>(new module::Encoder_repetition_sys<>(p.K, p.N   ));
-		m.modem   = std::unique_ptr<module::Modem_BPSK            <>>(new module::Modem_BPSK            <>(p.N        ));
-		m.channel = std::unique_ptr<module::Channel_AWGN_LLR      <>>(new module::Channel_AWGN_LLR      <>(p.N, p.seed));
-		m.decoder = std::unique_ptr<module::Decoder_repetition_std<>>(new module::Decoder_repetition_std<>(p.K, p.N   ));
-		m.monitor = std::unique_ptr<module::Monitor_BFER          <>>(new module::Monitor_BFER          <>(p.K, p.fe  ));
+		m.source  = std::unique_ptr<spu::module::Source_random         <>>(new spu::module::Source_random         <>(p.K        ));
+		m.encoder = std::unique_ptr<     module::Encoder_repetition_sys<>>(new      module::Encoder_repetition_sys<>(p.K, p.N   ));
+		m.modem   = std::unique_ptr<     module::Modem_BPSK            <>>(new      module::Modem_BPSK            <>(p.N        ));
+		m.channel = std::unique_ptr<     module::Channel_AWGN_LLR      <>>(new      module::Channel_AWGN_LLR      <>(p.N, p.seed));
+		m.decoder = std::unique_ptr<     module::Decoder_repetition_std<>>(new      module::Decoder_repetition_std<>(p.K, p.N   ));
+		m.monitor = std::unique_ptr<     module::Monitor_BFER          <>>(new      module::Monitor_BFER          <>(p.K, p.fe  ));
 	};
 
 :numref:`lst_bootstrap_main` describes the ``modules1`` structure and the
@@ -181,6 +182,11 @@ Those modules are allocated on the heap and managed by smart pointers
 ``params1`` structure from :numref:`lst_bootstrap_params` in parameter. These
 parameters are used to build the modules.
 
+.. note:: The ``Source_random`` module is prefixed by ``spu`` (meaning it is in
+  the ``spu`` namespace and not in ``aff3ct``). This is different from the other
+  modules and this is because the ``Source_random`` class is defined in
+  the `StreamPU`_ library (and NOT in AFF3CT).
+
 .. code-block:: cpp
 	:caption: Bootstrap: buffers
 	:name: lst_bootstrap_buffers
@@ -188,22 +194,26 @@ parameters are used to build the modules.
 
 	struct buffers1
 	{
-		std::vector<int  > ref_bits;
-		std::vector<int  > enc_bits;
-		std::vector<float> symbols;
-		std::vector<float> noisy_symbols;
-		std::vector<float> LLRs;
-		std::vector<int  > dec_bits;
+		std::vector<int     > ref_bits;
+		std::vector<uint32_t> ref_count;
+		std::vector<int     > enc_bits;
+		std::vector<float   > symbols;
+		std::vector<float   > sigma;
+		std::vector<float   > noisy_symbols;
+		std::vector<float   > LLRs;
+		std::vector<int     > dec_bits;
 	};
 
 	void init_buffers1(const params1 &p, buffers1 &b)
 	{
-		b.ref_bits      = std::vector<int  >(p.K);
-		b.enc_bits      = std::vector<int  >(p.N);
-		b.symbols       = std::vector<float>(p.N);
-		b.noisy_symbols = std::vector<float>(p.N);
-		b.LLRs          = std::vector<float>(p.N);
-		b.dec_bits      = std::vector<int  >(p.K);
+		b.ref_bits      = std::vector<int     >(p.K);
+		b.ref_count     = std::vector<uint32_t>(  1);
+		b.enc_bits      = std::vector<int     >(p.N);
+		b.symbols       = std::vector<float   >(p.N);
+		b.sigma         = std::vector<float   >(  1);
+		b.noisy_symbols = std::vector<float   >(p.N);
+		b.LLRs          = std::vector<float   >(p.N);
+		b.dec_bits      = std::vector<int     >(p.K);
 	}
 
 :numref:`lst_bootstrap_buffers` describes the ``buffers1`` structure and the
@@ -221,9 +231,9 @@ of the buffers is obtained from the ``params1`` input structure (cf.
 
 	struct utils1
 	{
-		std::unique_ptr<tools::Sigma<>>               noise;     // a sigma noise type
-		std::vector<std::unique_ptr<tools::Reporter>> reporters; // list of reporters dispayed in the terminal
-		std::unique_ptr<tools::Terminal_std>          terminal;  // manage the output text in the terminal
+		std::unique_ptr<tools::Sigma<>>                    noise;     // a sigma noise type
+		std::vector<std::unique_ptr<spu::tools::Reporter>> reporters; // list of reporters dispayed in the terminal
+		std::unique_ptr<spu::tools::Terminal_std>          terminal;  // manage the output text in the terminal
 	};
 
 	void init_utils1(const modules1 &m, utils1 &u)
@@ -231,13 +241,13 @@ of the buffers is obtained from the ``params1`` input structure (cf.
 		// create a sigma noise type
 		u.noise = std::unique_ptr<tools::Sigma<>>(new tools::Sigma<>());
 		// report the noise values (Es/N0 and Eb/N0)
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
 		// report the bit/frame error rates
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER<>(*m.monitor)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_BFER<>(*m.monitor)));
 		// report the simulation throughputs
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*m.monitor)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_throughput<>(*m.monitor)));
 		// create a terminal that will display the collected data from the reporters
-		u.terminal = std::unique_ptr<tools::Terminal_std>(new tools::Terminal_std(u.reporters));
+		u.terminal = std::unique_ptr<spu::tools::Terminal_std>(new spu::tools::Terminal_std(u.reporters));
 	}
 
 :numref:`lst_bootstrap_utils` describes the ``utils1`` structure and the
@@ -276,7 +286,7 @@ If you run the `bootstrap` example, the expected output is shown in
 	       3.98 |    10.00 ||   866433 |      100 |      100 | 3.61e-06 | 1.15e-04 ||    4.931 | 00h00'05
 
 .. note:: The full source code is available here:
-  https://github.com/aff3ct/my_project_with_aff3ct/blob/master/examples/bootstrap/src/main.cpp.
+  https://github.com/aff3ct/my_project_with_aff3ct/blob/develop/examples/bootstrap/src/main.cpp.
 
 .. _user_library_tasks:
 
@@ -293,13 +303,16 @@ objects.
 	:linenos:
 	:caption: Tasks: main function
 	:name: lst_tasks_main
-	:emphasize-lines: 7-8,14-22,43-49,60-61
+	:emphasize-lines: 6-7,10-11,17-27,44-50,60-61
 
 	#include <aff3ct.hpp>
 	using namespace aff3ct;
 
 	int main(int argc, char** argv)
 	{
+		// enable auto allocation of the output sockets
+		spu::tools::Buffer_allocator::set_task_autoalloc(true);
+
 		params1  p; init_params1 (p   ); // create and initialize the parameters defined by the user
 		modules1 m; init_modules2(p, m); // create and initialize modules
 		// the 'init_buffers1' function is not required anymore
@@ -309,27 +322,25 @@ objects.
 		u.terminal->legend();
 
 		// sockets binding (connect sockets of successive tasks in the chain: the output socket of a task fills the input socket of the next task in the chain)
-		using namespace module;
-		(*m.encoder)[enc::sck::encode      ::U_K ].bind((*m.source )[src::sck::generate   ::U_K ]);
-		(*m.modem  )[mdm::sck::modulate    ::X_N1].bind((*m.encoder)[enc::sck::encode     ::X_N ]);
-		(*m.channel)[chn::sck::add_noise   ::X_N ].bind((*m.modem  )[mdm::sck::modulate   ::X_N2]);
-		(*m.modem  )[mdm::sck::demodulate  ::Y_N1].bind((*m.channel)[chn::sck::add_noise  ::Y_N ]);
-		(*m.decoder)[dec::sck::decode_siho ::Y_N ].bind((*m.modem  )[mdm::sck::demodulate ::Y_N2]);
-		(*m.monitor)[mnt::sck::check_errors::U   ].bind((*m.encoder)[enc::sck::encode     ::U_K ]);
-		(*m.monitor)[mnt::sck::check_errors::V   ].bind((*m.decoder)[dec::sck::decode_siho::V_K ]);
+		(*m.encoder)[      "encode::U_K" ] = (*m.source )[   "generate::out_data"];
+		(*m.modem  )[    "modulate::X_N1"] = (*m.encoder)[     "encode::X_N"     ];
+		(*m.channel)[   "add_noise::X_N" ] = (*m.modem  )[   "modulate::X_N2"    ];
+		(*m.modem  )[  "demodulate::Y_N1"] = (*m.channel)[  "add_noise::Y_N"     ];
+		(*m.decoder)[ "decode_siho::Y_N" ] = (*m.modem  )[ "demodulate::Y_N2"    ];
+		(*m.monitor)["check_errors::U"   ] = (*m.source )[   "generate::out_data"];
+		(*m.monitor)["check_errors::V"   ] = (*m.decoder)["decode_siho::V_K"     ];
+		std::vector<float> sigma(1);
+		(*m.channel)[   "add_noise::CP"  ] = sigma;
+		(*m.modem  )[  "demodulate::CP"  ] = sigma;
 
 		// loop over the range of SNRs
 		for (auto ebn0 = p.ebn0_min; ebn0 < p.ebn0_max; ebn0 += p.ebn0_step)
 		{
 			// compute the current sigma for the channel noise
-			const auto esn0  = tools::ebn0_to_esn0 (ebn0, p.R);
-			const auto sigma = tools::esn0_to_sigma(esn0     );
+			const auto esn0 = tools::ebn0_to_esn0(ebn0, p.R);
+			std::fill(sigma.begin(), sigma.end(), tools::esn0_to_sigma(esn0));
 
-			u.noise->set_values(sigma, ebn0, esn0);
-
-			// update the sigma of the modem and the channel
-			m.modem  ->set_noise(*u.noise);
-			m.channel->set_noise(*u.noise);
+			u.noise->set_values(sigma[0], ebn0, esn0);
 
 			// display the performance (BER and FER) in real time (in a separate thread)
 			u.terminal->start_temp_report();
@@ -337,13 +348,13 @@ objects.
 			// run the simulation chain
 			while (!m.monitor->fe_limit_achieved())
 			{
-				(*m.source )[src::tsk::generate    ].exec();
-				(*m.encoder)[enc::tsk::encode      ].exec();
-				(*m.modem  )[mdm::tsk::modulate    ].exec();
-				(*m.channel)[chn::tsk::add_noise   ].exec();
-				(*m.modem  )[mdm::tsk::demodulate  ].exec();
-				(*m.decoder)[dec::tsk::decode_siho ].exec();
-				(*m.monitor)[mnt::tsk::check_errors].exec();
+				(*m.source )[spu::module::src::tsk::generate    ].exec();
+				(*m.encoder)[     module::enc::tsk::encode      ].exec();
+				(*m.modem  )[     module::mdm::tsk::modulate    ].exec();
+				(*m.channel)[     module::chn::tsk::add_noise   ].exec();
+				(*m.modem  )[     module::mdm::tsk::demodulate  ].exec();
+				(*m.decoder)[     module::dec::tsk::decode_siho ].exec();
+				(*m.monitor)[     module::mnt::tsk::check_errors].exec();
 			}
 
 			// display the performance (BER and FER) in the terminal
@@ -351,11 +362,10 @@ objects.
 
 			// reset the monitor and the terminal for the next SNR
 			m.monitor->reset();
-			u.terminal->reset();
 		}
 
 		// display the statistics of the tasks (if enabled)
-		tools::Stats::show({ m.source.get(), m.encoder.get(), m.modem.get(), m.channel.get(), m.decoder.get(), m.monitor.get() }, true);
+		spu::tools::Stats::show({ m.source.get(), m.encoder.get(), m.modem.get(), m.channel.get(), m.decoder.get(), m.monitor.get() }, true);
 
 		return 0;
 	}
@@ -366,39 +376,38 @@ previous ``init_modules1`` function, :numref:`lst_tasks_modules` details the
 changes.
 
 Thanks to the use of ``Task`` and ``Socket`` objects, it is now possible to skip
-the buffer allocation part (see line ``8``), which is handled transparently by
-these objects. For that, the connections between the sockets of successive tasks
-in the chain have to be established explicitly: this is the binding process
-shown at lines ``14-22``, using the ``bind`` method. In return, to execute the
-tasks (lines ``43-49``), we now only need to call the ``exec`` method, without
-any parameters.
+the buffer allocation part (see lines ``6-7`` and line ``11`` has been removed),
+which is handled transparently by these objects. For that, the connections
+between the sockets of successive tasks in the chain have to be established
+explicitly: this is the binding process shown at lines ``17-27``, using the
+``operator=`` method. In return, to execute the tasks (lines ``44-50``), we now
+only need to call the ``exec`` method, without any parameters.
 
-Using the ``bind`` and ``exec`` methods bring new useful features for debugging
-and benchmarking. In :numref:`lst_tasks_main`, some statistics about tasks are
-collected and reported at lines ``60-61`` (see the :ref:`sim-sim-stats` section
-for more informations about the statistics output).
+Using the ``bind`` (or ``operator=``) and ``exec`` methods bring new useful
+features for debugging and benchmarking. In :numref:`lst_tasks_main`, some
+statistics about tasks are collected and reported at lines ``60-61`` (see the
+:ref:`sim-sim-stats` section for more informations about the statistics output).
 
 .. code-block:: cpp
 	:linenos:
 	:caption: Tasks: modules
 	:name: lst_tasks_modules
-	:emphasize-lines: 10-23
+	:emphasize-lines: 10-22
 
 	void init_modules2(const params1 &p, modules1 &m)
 	{
-		m.source  = std::unique_ptr<module::Source_random         <>>(new module::Source_random         <>(p.K        ));
-		m.encoder = std::unique_ptr<module::Encoder_repetition_sys<>>(new module::Encoder_repetition_sys<>(p.K, p.N   ));
-		m.modem   = std::unique_ptr<module::Modem_BPSK            <>>(new module::Modem_BPSK            <>(p.N        ));
-		m.channel = std::unique_ptr<module::Channel_AWGN_LLR      <>>(new module::Channel_AWGN_LLR      <>(p.N, p.seed));
-		m.decoder = std::unique_ptr<module::Decoder_repetition_std<>>(new module::Decoder_repetition_std<>(p.K, p.N   ));
-		m.monitor = std::unique_ptr<module::Monitor_BFER          <>>(new module::Monitor_BFER          <>(p.K, p.fe  ));
+		m.source  = std::unique_ptr<spu::module::Source_random         <>>(new spu::module::Source_random         <>(p.K        ));
+		m.encoder = std::unique_ptr<     module::Encoder_repetition_sys<>>(new      module::Encoder_repetition_sys<>(p.K, p.N   ));
+		m.modem   = std::unique_ptr<     module::Modem_BPSK            <>>(new      module::Modem_BPSK            <>(p.N        ));
+		m.channel = std::unique_ptr<     module::Channel_AWGN_LLR      <>>(new      module::Channel_AWGN_LLR      <>(p.N, p.seed));
+		m.decoder = std::unique_ptr<     module::Decoder_repetition_std<>>(new      module::Decoder_repetition_std<>(p.K, p.N   ));
+		m.monitor = std::unique_ptr<     module::Monitor_BFER          <>>(new      module::Monitor_BFER          <>(p.K, p.fe  ));
 
 		// configuration of the module tasks
-		std::vector<const module::Module*> modules_list = { m.source.get(), m.encoder.get(), m.modem.get(), m.channel.get(), m.decoder.get(), m.monitor.get() };
+		std::vector<const spu::module::Module*> modules_list = { m.source.get(), m.encoder.get(), m.modem.get(), m.channel.get(), m.decoder.get(), m.monitor.get() };
 		for (auto& mod : modules_list)
 			for (auto& tsk : mod->tasks)
 			{
-				tsk->set_autoalloc  (true ); // enable the automatic allocation of data buffers in the tasks
 				tsk->set_debug      (false); // disable the debug mode
 				tsk->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
 				tsk->set_stats      (true ); // enable statistics collection
@@ -411,14 +420,13 @@ for more informations about the statistics output).
 
 The beginning of the ``init_modules2`` function (:numref:`lst_tasks_modules`) is
 the same as the ``init_module1`` function (:numref:`lst_bootstrap_modules`). At
-lines ``10-23``, each ``Module`` is parsed to get its tasks, each ``Task`` is
-configured to automatically allocate its outputs ``Socket`` memory (line ``15``)
-and collect statistics on the ``Task`` execution (line ``19``). It is also
-possible to print debug information by toggling boolean to ``true`` at line
-``17``.
+lines ``10-22``, each ``Module`` is parsed to get its tasks, each ``Task`` is
+configured to automatically collect statistics on the ``Task`` execution (line
+``17``). It is also possible to print debug information by toggling boolean to
+``true`` at line ``15``.
 
 .. note:: The full source code is available here:
-  https://github.com/aff3ct/my_project_with_aff3ct/blob/master/examples/tasks/src/main.cpp.
+  https://github.com/aff3ct/my_project_with_aff3ct/blob/develop/examples/tasks/src/main.cpp.
 
 .. _user_library_factory:
 
@@ -447,7 +455,7 @@ modules dynamically from command line arguments.
 		// [...]
 
 		// display the statistics of the tasks (if enabled)
-		tools::Stats::show({ m.source.get(), m.modem.get(), m.channel.get(), m.monitor.get(), m.encoder, m.decoder }, true);
+		spu::tools::Stats::show({ m.source.get(), m.modem.get(), m.channel.get(), m.monitor.get(), m.encoder, m.decoder }, true);
 
 		return 0;
 	}
@@ -528,31 +536,30 @@ and line ``19`` by ``polar`` to work with polar code.
 
 	struct modules3
 	{
-		std::unique_ptr<module::Source<>>       source;
-		std::unique_ptr<tools ::Codec_SIHO<>>   codec;
-		std::unique_ptr<module::Modem<>>        modem;
-		std::unique_ptr<module::Channel<>>      channel;
-		std::unique_ptr<module::Monitor_BFER<>> monitor;
-		                module::Encoder<>*      encoder;
-		                module::Decoder_SIHO<>* decoder;
+		std::unique_ptr<spu::module::Source<>>       source;
+		std::unique_ptr<     tools ::Codec_SIHO<>>   codec;
+		std::unique_ptr<     module::Modem<>>        modem;
+		std::unique_ptr<     module::Channel<>>      channel;
+		std::unique_ptr<     module::Monitor_BFER<>> monitor;
+		                     module::Encoder<>*      encoder;
+		                     module::Decoder_SIHO<>* decoder;
 	};
 
 	void init_modules3(const params3 &p, modules3 &m)
 	{
-		m.source  = std::unique_ptr<module::Source      <>>(p.source ->build());
-		m.codec   = std::unique_ptr<tools ::Codec_SIHO  <>>(p.codec  ->build());
-		m.modem   = std::unique_ptr<module::Modem       <>>(p.modem  ->build());
-		m.channel = std::unique_ptr<module::Channel     <>>(p.channel->build());
-		m.monitor = std::unique_ptr<module::Monitor_BFER<>>(p.monitor->build());
+		m.source  = std::unique_ptr<spu::module::Source      <>>(p.source ->build());
+		m.codec   = std::unique_ptr<     tools ::Codec_SIHO  <>>(p.codec  ->build());
+		m.modem   = std::unique_ptr<     module::Modem       <>>(p.modem  ->build());
+		m.channel = std::unique_ptr<     module::Channel     <>>(p.channel->build());
+		m.monitor = std::unique_ptr<     module::Monitor_BFER<>>(p.monitor->build());
 		m.encoder = m.codec->get_encoder().get();
 		m.decoder = m.codec->get_decoder_siho().get();
 
 		// configuration of the module tasks
-		std::vector<const module::Module*> modules_list = { m.source.get(), m.modem.get(), m.channel.get(), m.monitor.get(), m.encoder, m.decoder };
+		std::vector<const spu::module::Module*> modules_list = { m.source.get(), m.modem.get(), m.channel.get(), m.monitor.get(), m.encoder, m.decoder };
 		for (auto& mod : modules_list)
 			for (auto& tsk : mod->tasks)
 			{
-				tsk->set_autoalloc  (true ); // enable the automatic allocation of the data in the tasks
 				tsk->set_debug      (false); // disable the debug mode
 				tsk->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
 				tsk->set_stats      (true ); // enable the statistics
@@ -579,13 +586,13 @@ because a ``Codec`` class is used to aggregate the ``Encoder`` and the
 		// create a sigma noise type
 		u.noise = std::unique_ptr<tools::Sigma<>>(new tools::Sigma<>());
 		// report noise values (Es/N0 and Eb/N0)
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
 		// report bit/frame error rates
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER<>(*m.monitor)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_BFER<>(*m.monitor)));
 		// report simulation throughputs
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*m.monitor)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_throughput<>(*m.monitor)));
 		// create a terminal object that will display the collected data from the reporters
-		u.terminal = std::unique_ptr<tools::Terminal>(p.terminal->build(u.reporters));
+		u.terminal = std::unique_ptr<spu::tools::Terminal>(p.terminal->build(u.reporters));
 	}
 
 In the :numref:`lst_factory_utils`, the ``init_utils3`` changes a little bit
@@ -616,31 +623,232 @@ Those parameters are documented in the :ref:`user_simulation_parameters`
 section.
 
 .. note:: The full source code is available here:
-  https://github.com/aff3ct/my_project_with_aff3ct/blob/master/examples/factory/src/main.cpp.
+  https://github.com/aff3ct/my_project_with_aff3ct/blob/develop/examples/factory/src/main.cpp.
+
+
+.. _user_library_sequence:
+
+Sequence
+========
+
+In the previous examples the code is mono-threaded. To take advantage of
+today multi-core |CPUs| some modifications have to be made. This example starts
+from the previous :ref:`user_library_factory` example and adapts it to work on
+multi-threaded architectures using `StreamPU`_ runtime, native to AFF3CT.
+
+.. code-block:: cpp
+	:caption: Sequence: main function
+	:name: lst_sequence_main
+	:emphasize-lines: 18,20-23,25-28,30-33,50-54
+	:linenos:
+
+	int main(int argc, char** argv)
+	{
+		params3  p; init_params3 (argc, argv, p); // create and initialize the parameters from the command line with factories
+		modules3 m; init_modules3(p, m         ); // create and initialize the modules
+
+		// sockets binding (connect the sockets of the tasks = fill the input sockets with the output sockets)
+		(*m.encoder)[      "encode::U_K" ] = (*m.source )[   "generate::out_data"];
+		(*m.modem  )[    "modulate::X_N1"] = (*m.encoder)[     "encode::X_N"     ];
+		(*m.channel)[   "add_noise::X_N" ] = (*m.modem  )[   "modulate::X_N2"    ];
+		(*m.modem  )[  "demodulate::Y_N1"] = (*m.channel)[  "add_noise::Y_N"     ];
+		(*m.decoder)[ "decode_siho::Y_N" ] = (*m.modem  )[ "demodulate::Y_N2"    ];
+		(*m.monitor)["check_errors::U"   ] = (*m.source )[   "generate::out_data"];
+		(*m.monitor)["check_errors::V"   ] = (*m.decoder)["decode_siho::V_K"     ];
+		std::vector<float> sigma(1);
+		(*m.channel)[   "add_noise::CP"  ] = sigma;
+		(*m.modem  )[  "demodulate::CP"  ] = sigma;
+
+		utils2 u; init_utils4(p, m, u); // create and initialize the utils
+
+		// set the noise
+		m.codec->set_noise(*u.noise);
+		for (auto &m : u.sequence->get_modules<tools::Interface_get_set_noise>())
+			m->set_noise(*u.noise);
+
+		// registering to noise updates
+		u.noise->record_callback_update([&m](){ m.codec->notify_noise_update(); });
+		for (auto &m : u.sequence->get_modules<tools::Interface_notify_noise_update>())
+			u.noise->record_callback_update([m](){ m->notify_noise_update(); });
+
+		// set different seeds in the modules that uses PRNG
+		std::mt19937 prng;
+		for (auto &m : u.sequence->get_modules<spu::tools::Interface_set_seed>())
+			m->set_seed(prng());
+
+		// display the legend in the terminal
+		u.terminal->legend();
+
+		// loop over the various SNRs
+		for (auto ebn0 = p.ebn0_min; ebn0 < p.ebn0_max; ebn0 += p.ebn0_step)
+		{
+			// compute the current sigma for the channel noise
+			const auto esn0 = tools::ebn0_to_esn0(ebn0, p.R, p.modem->bps);
+			std::fill(sigma.begin(), sigma.end(), tools::esn0_to_sigma(esn0, p.modem->cpm_upf));
+
+			u.noise->set_values(sigma[0], ebn0, esn0);
+
+			// display the performance (BER and FER) in real time (in a separate thread)
+			u.terminal->start_temp_report();
+
+			// execute the simulation sequence (multi-threaded)
+			u.sequence->exec([&u]() -> bool
+			{
+				return u.monitor_red->is_done();
+			});
+
+			// final reduction
+			u.monitor_red->reduce();
+
+			// display the performance (BER and FER) in the terminal
+			u.terminal->final_report();
+
+			// reset the monitors for the next SNR
+			u.monitor_red->reset();
+		}
+
+		// display the statistics of the tasks (if enabled)
+		std::cout << "#" << std::endl;
+		spu::tools::Stats::show(u.sequence->get_modules_per_types(), true);
+		std::cout << "# End of the simulation" << std::endl;
+
+		return 0;
+	}
+
+:numref:`lst_sequence_main` depicts how to use `StreamPU`_ runtime to
+parallelize the whole communication chain. Line ``18``, a new ``utils2``
+structure if defined, from now you should only know that a sequence is allocated
+in ``u.sequence`` (the new structure ``utils2`` is detailed later). Lines
+``20-23`` the sequence is used to get all the modules that deals with the noise
+and to set it. Lines ``25-28``, the modules that are using the noise are
+registered to a callback (to be automatically updated when ``u.noise`` is
+modified line ``45``).
+
+Lines ``30-33``, a different seed is assigned to the modules using a |PRNG|. It
+is important to give a distinct seed to each thread. If the seed is the same for
+all threads, they all simulate the same frame contents and apply the same noise
+over it.
+
+For lines ``20-23``, ``25-28`` and ``30-33``, it is worthwhile to mention that
+the ``get_modules<Class>`` method is used over the ``u.sequence``. This method
+is very useful to retrieve the modules inside a sequence depending on their type
+(a Class here) through the template argument!
+
+Finally, lines ``50-54`` are very important. Indeed, the per-task executions
+have been simply replaced by the sequence execution (no more loop over the
+frames, this loop is now implicit). The ``exec(...)`` method takes a function as
+a parameter to determine whether the sequence should loop over a new frame or
+stop. The stopping condition depends on a special monitor used to reduce the
+data among all the running monitors (1 per thread). Basically, this monitor
+gathers the number of frame errors from the standard ones and if the sum is
+equal or higher than 100 errors, ``is_done()`` returns ``true``.
+
+.. code-block:: cpp
+	:caption: Sequence: utils
+	:name: lst_sequence_utils
+	:emphasize-lines: 6-7,12-18
+	:linenos:
+
+	struct utils2
+	{
+		std::unique_ptr<tools::Sigma<>                   > noise;       // a sigma noise type
+		std::vector<std::unique_ptr<spu::tools::Reporter>> reporters;   // list of reporters displayed in the terminal
+		std::unique_ptr<spu::tools::Terminal             > terminal;    // manage the output text in the terminal
+		std::unique_ptr<tools::Monitor_BFER_reduction    > monitor_red; // main monitor object that reduces all the thread monitors
+		std::unique_ptr<spu::runtime::Sequence           > sequence;    // a sequence to run the processing chain
+	};
+
+	void init_utils4(const params3 &p, const modules3 &m, utils2 &u)
+	{
+		// create a sequence, automatically replicated on 4 threads
+		size_t n_threads = 4;
+		u.sequence = std::unique_ptr<spu::runtime::Sequence>(new spu::runtime::Sequence((*m.source)("generate"), n_threads));
+		// allocate a common monitor module to reduce all the monitors
+		u.monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(
+		    u.sequence->get_modules<module::Monitor_BFER<>>()));
+		u.monitor_red->set_reduce_frequency(std::chrono::milliseconds(500));
+		// create a sigma noise type
+		u.noise = std::unique_ptr<tools::Sigma<>>(new tools::Sigma<>());
+		// report the noise values (Es/N0 and Eb/N0)
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
+		// report the bit/frame error rates
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_BFER<>(*u.monitor_red)));
+		// report the simulation throughputs
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_throughput<>(*u.monitor_red)));
+		// create a terminal that will display the collected data from the reporters
+		u.terminal = std::unique_ptr<spu::tools::Terminal>(p.terminal->build(u.reporters));
+
+		// configuration of the sequence tasks
+		for (auto& mod : u.sequence->get_modules<spu::module::Module>(false))
+			for (auto& tsk : mod->tasks)
+			{
+				tsk->set_debug      (false); // disable the debug mode
+				tsk->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
+				tsk->set_stats      (true ); // enable the statistics
+
+				// enable the fast mode (= disable the useless verifs in the tasks) if there is no debug and stats modes
+				if (!tsk->is_debug() && !tsk->is_stats())
+					tsk->set_fast(true);
+		    }
+	}
+
+
+:numref:`lst_sequence_utils` presents the modifications made in the ``utils2``
+structure. Indeed, two new attributes have been added:
+
+- ``monitor_red`` line ``6``: A special monitor that gathers all the "standard"
+  monitor to reduce them.
+- ``sequence`` line ``7``: A sequence object that will contain the modules and
+  execute the chain of tasks.
+
+Then, in the ``init_utils4(...)`` function, the ``sequence`` object is allocated
+line ``14``. The constructor requires 1) the first task
+(``(*m.source)("generate")`` here) to traverse the graph of tasks automatically
+(thanks to the binding in the ``main`` function) and 2) the number of threads
+to replicate the sequence and take advantage of multicore CPUs (4 threads are
+created here, see line ``13``).
+
+Lines ``16-17`` the ``monitor_red`` is allocated and initialized from all the
+"standard" monitors contained in the sequence (4 "standard" monitor here because
+the sequence is replicated 4 times).
+
+Finally, line ``18``, the ``monitor_red`` object is configured to reduce the
+monitor data every 0.5 second. This could be done more often but this reduction
+comes with the cost of synchronizing the threads. So, it is best to limit this
+overhead. This is the reason why, sometimes the number of frame errors will be
+higher than the limit we fixed.
+
+
+.. note:: The full source code is available here:
+  https://github.com/aff3ct/my_project_with_aff3ct/blob/develop/examples/sequence/src/main.cpp.
 
 .. _user_library_openmp:
 
-OpenMP
-======
+OpenMP (deprecated)
+===================
 
 .. _OpenMP: https://www.openmp.org/
 
-In the previous examples the code is mono-threaded. To take advantage of the
-today multi-core |CPUs| some modifications have to be made. This example starts
-from the previous :ref:`user_library_factory` example and adapts it to work on
-multi-threaded architectures using `pragma` directives of the well-known
-`OpenMP`_ language.
+.. warning:: **This code example is now deprecated** and it is encouraged to use
+  the previous :ref:`user_library_sequence` example. Indeed, the sequence is
+  much easier to use than to manually implement multi-threading with  `OpenMP`_.
+  Moreover, the sequence is also more efficient than to use `OpenMP`_ (at least
+  the way it is presented in this section).
+
+This example starts from the :ref:`user_library_factory` example and adapts it
+to work on multi-threaded architectures using `pragma` directives of the
+well-known `OpenMP`_ language.
 
 .. code-block:: cpp
 	:caption: OpenMP: main function
 	:name: lst_openmp_main
-	:emphasize-lines: 4,6,8,10-13,15,17-18,42,49,54,65-67,69-70,76,81
+	:emphasize-lines: 4,6,8,10-13,15,17-18,47,56,67-69,71-72,82
 	:linenos:
 
 	int main(int argc, char** argv)
 	{
 		params3 p; init_params3(argc, argv, p); // create and initialize the parameters from the command line with factories
-		utils4 u; // create an 'utils4' structure
+		utils3 u; // create an 'utils3' structure
 
 	#pragma omp parallel
 	{
@@ -651,25 +859,30 @@ multi-threaded architectures using `pragma` directives of the well-known
 		u.monitors.resize(n_threads);
 		u.modules .resize(n_threads);
 	}
-		modules4 m; init_modules_and_utils4(p, m, u); // create and initialize the modules and initialize a part of the utils
+		modules4 m; init_modules_and_utils(p, m, u); // create and initialize the modules and initialize a part of the utils
 
 	#pragma omp barrier
 	#pragma omp single
 	{
-		init_utils4(p, u); // finalize the utils initialization
+		init_utils5(p, u); // finalize the utils initialization
 
 		// display the legend in the terminal
 		u.terminal->legend();
 	}
+		// set the noise and register modules to "noise changed" callback
+		m.codec->set_noise(*u.noise); u.noise->record_callback_update([&m](){ m.codec->notify_noise_update(); });
+
 		// sockets binding (connect the sockets of the tasks = fill the input sockets with the output sockets)
-		using namespace module;
-		(*m.encoder)[enc::sck::encode      ::U_K ].bind((*m.source )[src::sck::generate   ::U_K ]);
-		(*m.modem  )[mdm::sck::modulate    ::X_N1].bind((*m.encoder)[enc::sck::encode     ::X_N ]);
-		(*m.channel)[chn::sck::add_noise   ::X_N ].bind((*m.modem  )[mdm::sck::modulate   ::X_N2]);
-		(*m.modem  )[mdm::sck::demodulate  ::Y_N1].bind((*m.channel)[chn::sck::add_noise  ::Y_N ]);
-		(*m.decoder)[dec::sck::decode_siho ::Y_N ].bind((*m.modem  )[mdm::sck::demodulate ::Y_N2]);
-		(*m.monitor)[mnt::sck::check_errors::U   ].bind((*m.encoder)[enc::sck::encode     ::U_K ]);
-		(*m.monitor)[mnt::sck::check_errors::V   ].bind((*m.decoder)[dec::sck::decode_siho::V_K ]);
+		(*m.encoder)[      "encode::U_K" ] = (*m.source )[   "generate::out_data"];
+		(*m.modem  )[    "modulate::X_N1"] = (*m.encoder)[     "encode::X_N"     ];
+		(*m.channel)[   "add_noise::X_N" ] = (*m.modem  )[   "modulate::X_N2"    ];
+		(*m.modem  )[  "demodulate::Y_N1"] = (*m.channel)[  "add_noise::Y_N"     ];
+		(*m.decoder)[ "decode_siho::Y_N" ] = (*m.modem  )[ "demodulate::Y_N2"    ];
+		(*m.monitor)["check_errors::U"   ] = (*m.source )[   "generate::out_data"];
+		(*m.monitor)["check_errors::V"   ] = (*m.decoder)["decode_siho::V_K"     ];
+		std::vector<float> sigma(1);
+		(*m.channel)[   "add_noise::CP"  ] = sigma;
+		(*m.modem  )[  "demodulate::CP"  ] = sigma;
 
 		// loop over the SNRs range
 		for (auto ebn0 = p.ebn0_min; ebn0 < p.ebn0_max; ebn0 += p.ebn0_step)
@@ -679,26 +892,23 @@ multi-threaded architectures using `pragma` directives of the well-known
 			const auto sigma = tools::esn0_to_sigma(esn0     );
 
 	#pragma omp single
-			u.noise->set_values(sigma, ebn0, esn0);
+	{
+			u.noise->set_values(sigma[0], ebn0, esn0);
 
-			// update the sigma of the modem and the channel
-			m.modem  ->set_noise(*u.noise);
-			m.channel->set_noise(*u.noise);
-
-	#pragma omp single
 			// display the performance (BER and FER) in real time (in a separate thread)
 			u.terminal->start_temp_report();
+	}
 
 			// run the simulation chain
 			while (!u.monitor_red->is_done())
 			{
-				(*m.source )[src::tsk::generate    ].exec();
-				(*m.encoder)[enc::tsk::encode      ].exec();
-				(*m.modem  )[mdm::tsk::modulate    ].exec();
-				(*m.channel)[chn::tsk::add_noise   ].exec();
-				(*m.modem  )[mdm::tsk::demodulate  ].exec();
-				(*m.decoder)[dec::tsk::decode_siho ].exec();
-				(*m.monitor)[mnt::tsk::check_errors].exec();
+				(*m.source )[spu::module::src::tsk::generate    ].exec();
+				(*m.encoder)[     module::enc::tsk::encode      ].exec();
+				(*m.modem  )[     module::mdm::tsk::modulate    ].exec();
+				(*m.channel)[     module::chn::tsk::add_noise   ].exec();
+				(*m.modem  )[     module::mdm::tsk::demodulate  ].exec();
+				(*m.decoder)[     module::dec::tsk::decode_siho ].exec();
+				(*m.monitor)[     module::mnt::tsk::check_errors].exec();
 			}
 
 	// need to wait all the threads here before to reset the 'monitors' and 'terminal' states
@@ -711,16 +921,15 @@ multi-threaded architectures using `pragma` directives of the well-known
 			// display the performance (BER and FER) in the terminal
 			u.terminal->final_report();
 
-			// reset the monitor and the terminal for the next SNR
+			// reset the monitors for the next SNR
 			u.monitor_red->reset();
-			u.terminal->reset();
 	}
 		}
 
 	#pragma omp single
 	{
 		// display the statistics of the tasks (if enabled)
-		tools::Stats::show(u.modules_stats, true);
+		spu::tools::Stats::show(u.modules_stats, true);
 	}
 	}
 		return 0;
@@ -735,7 +944,7 @@ the whole communication chain. As a remainder:
 - ``#pragma omp single``: only one thread executes the code below (there is an
   implicit barrier at the end of the ``single`` zone).
 
-In this example, a ``params3`` and an ``utils4`` structure are allocated in
+In this example, a ``params3`` and an ``utils3`` structure are allocated in
 ``p`` and ``u`` respectively, before the parallel region (lines ``3-4``). As a
 consequence, ``p`` and ``u`` are shared among all the threads. On the contrary,
 a ``modules4`` structure is allocated in ``m`` inside the parallel region, thus
@@ -744,32 +953,32 @@ each threads gets its own local ``m``.
 .. code-block:: cpp
 	:caption: OpenMP: modules and utils
 	:name: lst_openmp_modules_utils
-	:emphasize-lines: 7,17-20,25-30,36-37,56
+	:emphasize-lines: 7,17-20,25-30,36-37,55
 	:linenos:
 
 	struct modules4
 	{
-		std::unique_ptr<module::Source<>>       source;
-		std::unique_ptr<tools ::Codec_SIHO<>>   codec;
-		std::unique_ptr<module::Modem<>>        modem;
-		std::unique_ptr<module::Channel<>>      channel;
-		                module::Monitor_BFER<>* monitor;
-		                module::Encoder<>*      encoder;
-		                module::Decoder_SIHO<>* decoder;
+		std::unique_ptr<spu::module::Source<>>       source;
+		std::unique_ptr<     tools ::Codec_SIHO<>>   codec;
+		std::unique_ptr<     module::Modem<>>        modem;
+		std::unique_ptr<     module::Channel<>>      channel;
+		                     module::Monitor_BFER<>* monitor;
+		                     module::Encoder<>*      encoder;
+		                     module::Decoder_SIHO<>* decoder;
 	};
 
-	struct utils4
+	struct utils3
 	{
 		std::unique_ptr<tools::Sigma<>>                      noise;         // a sigma noise type
-		std::vector<std::unique_ptr<tools::Reporter>>        reporters;     // list of reporters displayed in the terminal
-		std::unique_ptr<tools::Terminal>                     terminal;      // manage the output text in the terminal
+		std::vector<std::unique_ptr<spu::tools::Reporter>>   reporters;     // list of reporters displayed in the terminal
+		std::unique_ptr<spu::tools::Terminal>                terminal;      // manage the output text in the terminal
 		std::vector<std::unique_ptr<module::Monitor_BFER<>>> monitors;      // list of the monitors from all the threads
 		std::unique_ptr<tools::Monitor_BFER_reduction>       monitor_red;   // main monitor object that reduce all the thread monitors
-		std::vector<std::vector<const module::Module*>>      modules;       // list of the allocated modules
-		std::vector<std::vector<const module::Module*>>      modules_stats; // list of the allocated modules reorganized for the statistics
+		std::vector<std::vector<const spu::module::Module*>> modules;       // list of the allocated modules
+		std::vector<std::vector<const spu::module::Module*>> modules_stats; // list of the allocated modules reorganized for the statistics
 	};
 
-	void init_modules_and_utils4(const params3 &p, modules4 &m, utils4 &u)
+	void init_modules_and_utils(const params3 &p, modules4 &m, utils3 &u)
 	{
 		// get the thread id from OpenMP
 		const int tid = omp_get_thread_num();
@@ -778,21 +987,20 @@ each threads gets its own local ``m``.
 		p.source->seed += tid;
 		p.channel->seed += tid;
 
-		m.source        = std::unique_ptr<module::Source      <>>(p.source ->build());
-		m.codec         = std::unique_ptr<tools ::Codec_SIHO  <>>(p.codec  ->build());
-		m.modem         = std::unique_ptr<module::Modem       <>>(p.modem  ->build());
-		m.channel       = std::unique_ptr<module::Channel     <>>(p.channel->build());
-		u.monitors[tid] = std::unique_ptr<module::Monitor_BFER<>>(p.monitor->build());
+		m.source        = std::unique_ptr<spu::module::Source      <>>(p.source ->build());
+		m.codec         = std::unique_ptr<     tools ::Codec_SIHO  <>>(p.codec  ->build());
+		m.modem         = std::unique_ptr<     module::Modem       <>>(p.modem  ->build());
+		m.channel       = std::unique_ptr<     module::Channel     <>>(p.channel->build());
+		u.monitors[tid] = std::unique_ptr<     module::Monitor_BFER<>>(p.monitor->build());
 		m.monitor       = u.monitors[tid].get();
 		m.encoder       = m.codec->get_encoder().get();
 		m.decoder       = m.codec->get_decoder_siho().get();
 
 		// configuration of the module tasks
-		std::vector<const module::Module*> modules_list = { m.source.get(), m.modem.get(), m.channel.get(), m.monitor, m.encoder, m.decoder };
+		std::vector<const spu::module::Module*> modules_list = { m.source.get(), m.modem.get(), m.channel.get(), m.monitor, m.encoder, m.decoder };
 		for (auto& mod : modules_list)
 			for (auto& tsk : mod->tasks)
 			{
-				tsk->set_autoalloc  (true ); // enable the automatic allocation of the data in the tasks
 				tsk->set_debug      (false); // disable the debug mode
 				tsk->set_debug_limit(16   ); // display only the 16 first bits if the debug mode is enabled
 				tsk->set_stats      (true ); // enable the statistics
@@ -809,15 +1017,15 @@ In :numref:`lst_openmp_modules_utils`, there is a change in the ``modules4``
 structure compared to the ``modules3`` structure
 (:numref:`lst_factory_modules`): at line ``7`` the ``monitor`` is not allocated
 in this structure anymore, thus a standard pointer is used instead of a smart
-pointer. The monitor is now allocated in the ``utils4`` structure at line
+pointer. The monitor is now allocated in the ``utils3`` structure at line
 ``17``, because all the monitors from all the threads have to be passed to build
 a common aggregated monitor for all of them: the ``monitor_red`` at line ``18``.
 ``monitor_red`` is able to perform the reduction of all the per-thread
 ``monitors``. In the example, the ``monitor_red`` is the only member from ``u``
 called by all the threads, to check whether the simulation has to continue or
-not (see line ``54`` in the ``main`` function, :numref:`lst_openmp_main`).
+not (see line ``56`` in the ``main`` function, :numref:`lst_openmp_main`).
 
-In the ``init_modules_and_utils4`` function, lines ``25-30``, a different seed
+In the ``init_modules_and_utils`` function, lines ``25-30``, a different seed
 is assigned to the modules using a |PRNG|. It is important to give a distinct
 seed to each thread. If the seed is the same for all threads, they all simulate
 the same frame contents and apply the same noise over it.
@@ -832,7 +1040,7 @@ pointer is assigned to ``m``. At line ``56`` a list of the modules is stored in
 	:emphasize-lines: 3-5,17-20
 	:linenos:
 
-	void init_utils4(const params3 &p, utils4 &u)
+	void init_utils5(const params3 &p, utils3 &u)
 	{
 		// allocate a common monitor module to reduce all the monitors
 		u.monitor_red = std::unique_ptr<tools::Monitor_BFER_reduction>(new tools::Monitor_BFER_reduction(u.monitors));
@@ -840,13 +1048,13 @@ pointer is assigned to ``m``. At line ``56`` a list of the modules is stored in
 		// create a sigma noise type
 		u.noise = std::unique_ptr<tools::Sigma<>>(new tools::Sigma<>());
 		// report noise values (Es/N0 and Eb/N0)
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_noise<>(*u.noise)));
 		// report bit/frame error rates
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_BFER<>(*u.monitor_red)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_BFER<>(*u.monitor_red)));
 		// report simulation throughputs
-		u.reporters.push_back(std::unique_ptr<tools::Reporter>(new tools::Reporter_throughput<>(*u.monitor_red)));
+		u.reporters.push_back(std::unique_ptr<spu::tools::Reporter>(new tools::Reporter_throughput<>(*u.monitor_red)));
 		// create a terminal that will display the collected data from the reporters
-		u.terminal = std::unique_ptr<tools::Terminal>(p.terminal->build(u.reporters));
+		u.terminal = std::unique_ptr<spu::tools::Terminal>(p.terminal->build(u.reporters));
 
 		u.modules_stats.resize(u.modules[0].size());
 		for (size_t m = 0; m < u.modules[0].size(); m++)
@@ -854,10 +1062,10 @@ pointer is assigned to ``m``. At line ``56`` a list of the modules is stored in
 				u.modules_stats[m].push_back(u.modules[t][m]);
 	}
 
-In :numref:`lst_openmp_utils`, the ``init_utils4`` function allocates and
+In :numref:`lst_openmp_utils`, the ``init_utils5`` function allocates and
 configure the ``monitor_red`` at lines ``3-5``. Note that the allocation of
 ``monitor_red`` is possible because the ``monitors`` have been allocated
-previously in the ``init_modules_and_utils4`` function
+previously in the ``init_modules_and_utils`` function
 (:numref:`lst_openmp_modules_utils`).
 
 Lines ``17-20``, the ``u.modules`` list is reordered in the ``u.modules_stats``
@@ -867,4 +1075,4 @@ dimension is the number of threads and the second is the number of different
 modules while in ``u.modules_stats`` the two dimension are switched.
 
 .. note:: The full source code is available here:
-  https://github.com/aff3ct/my_project_with_aff3ct/blob/master/examples/openmp/src/main.cpp.
+  https://github.com/aff3ct/my_project_with_aff3ct/blob/develop/examples/openmp/src/main.cpp.

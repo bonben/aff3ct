@@ -66,6 +66,7 @@ class Extractor : public spu::module::Stateful
     inline spu::runtime::Socket& operator[](const ext::sck::get_sys_bit s);
     inline spu::runtime::Socket& operator[](const ext::sck::get_sys_and_par_llr s);
     inline spu::runtime::Socket& operator[](const ext::sck::add_sys_and_ext_llr s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int K;

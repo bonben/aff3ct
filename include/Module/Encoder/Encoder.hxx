@@ -25,6 +25,13 @@ Encoder<B>::operator[](const enc::sck::encode s)
 }
 
 template<typename B>
+spu::runtime::Socket&
+Encoder<B>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B>
 Encoder<B>::Encoder(const int K, const int N)
   : spu::module::Stateful()
   , K(K)

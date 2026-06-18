@@ -140,7 +140,7 @@ print_version()
     std::cout << "  - MPI:               " << mpi << std::endl;
     std::cout << "  - GSL:               " << gsl << std::endl;
     std::cout << "  - MKL:               " << mkl << std::endl;
-    std::cout << "Copyright (c) 2016-2024 - MIT license." << std::endl;
+    std::cout << "Copyright (c) 2016-2026 - MIT license." << std::endl;
     std::cout << "This is free software; see the source for copying conditions.  There is NO" << std::endl;
     std::cout << "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE." << std::endl;
     exit(EXIT_SUCCESS);

@@ -66,6 +66,7 @@ class Interleaver : public spu::module::Stateful
     inline spu::runtime::Socket& operator[](const itl::sck::interleave_reordering s);
     inline spu::runtime::Socket& operator[](const itl::sck::deinterleave s);
     inline spu::runtime::Socket& operator[](const itl::sck::deinterleave_reordering s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const tools::Interleaver_core<T>& core;

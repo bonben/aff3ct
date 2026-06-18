@@ -26,6 +26,7 @@ class Monitor_BFER : public Monitor
     inline spu::runtime::Task& operator[](const mnt::tsk t);
     inline spu::runtime::Socket& operator[](const mnt::sck::check_errors s);
     inline spu::runtime::Socket& operator[](const mnt::sck::check_errors2 s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     struct Attributes

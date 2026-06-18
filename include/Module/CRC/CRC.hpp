@@ -70,6 +70,7 @@ class CRC : public spu::module::Stateful
     inline spu::runtime::Socket& operator[](const crc::sck::build s);
     inline spu::runtime::Socket& operator[](const crc::sck::extract s);
     inline spu::runtime::Socket& operator[](const crc::sck::check s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   protected:
     const int K; /*!< Number of information bits (the CRC bits are not included in K) */

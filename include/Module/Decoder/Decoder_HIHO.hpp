@@ -31,6 +31,7 @@ class Decoder_HIHO : public Decoder
     inline spu::runtime::Task& operator[](const dec::tsk t);
     inline spu::runtime::Socket& operator[](const dec::sck::decode_hiho s);
     inline spu::runtime::Socket& operator[](const dec::sck::decode_hiho_cw s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   public:
     /*!

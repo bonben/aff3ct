@@ -47,6 +47,13 @@ Decoder_SIHO<B, R>::operator[](const dec::sck::decode_siho_cw s)
 }
 
 template<typename B, typename R>
+spu::runtime::Socket&
+Decoder_SIHO<B, R>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename R>
 Decoder_SIHO<B, R>::Decoder_SIHO(const int K, const int N)
   : Decoder_HIHO<B>(K, N)
   , Y_N(N * this->get_n_frames_per_wave())

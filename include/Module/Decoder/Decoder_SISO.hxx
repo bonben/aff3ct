@@ -61,6 +61,13 @@ Decoder_SISO<B, R>::operator[](const dec::sck::decode_siso_alt s)
 }
 
 template<typename B, typename R>
+spu::runtime::Socket&
+Decoder_SISO<B, R>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B, typename R>
 Decoder_SISO<B, R>::Decoder_SISO(const int K, const int N)
   : Decoder_SIHO<B, R>(K, N)
 {

@@ -34,6 +34,7 @@ class Decoder_SISO : public Decoder_SIHO<B, R>
     inline spu::runtime::Socket& operator[](const dec::sck::decode_siho_cw s);
     inline spu::runtime::Socket& operator[](const dec::sck::decode_siso s);
     inline spu::runtime::Socket& operator[](const dec::sck::decode_siso_alt s);
+    inline spu::runtime::Socket& operator[](const std::string& tsk_sck);
 
   public:
     /*!

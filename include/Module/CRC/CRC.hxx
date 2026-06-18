@@ -38,6 +38,13 @@ CRC<B>::operator[](const crc::sck::check s)
 }
 
 template<typename B>
+spu::runtime::Socket&
+CRC<B>::operator[](const std::string& tsk_sck)
+{
+    return spu::module::Module::operator[](tsk_sck);
+}
+
+template<typename B>
 CRC<B>::CRC(const int K, const int size)
   : spu::module::Stateful()
   , K(K)
