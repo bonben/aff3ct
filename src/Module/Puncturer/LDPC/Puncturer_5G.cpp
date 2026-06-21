@@ -62,7 +62,7 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
         }
         j++;
     }
-    std::memset(Y_N2, 0, sizeof(Q) * 2 * this->base_graph.Zc);
+    std::fill(Y_N2, Y_N2 + 2 * this->base_graph.Zc, (Q)0);
     std::fill(Y_N2 + this->K, Y_N2 + this->K + this->base_graph.K_LDPC - this->K, std::numeric_limits<Q>::infinity());
 }
 

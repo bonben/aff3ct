@@ -20,6 +20,7 @@ class Update_rule_SPA_simd // Sum Product Algorithm
   protected:
     const std::string name;
     const mipp::Msk<mipp::N<R>()> false_msk;
+    const mipp::Reg<R> zero;
     const mipp::Reg<R> one;
     const mipp::Reg<R> half;
     const mipp::Reg<R> two;
@@ -27,6 +28,9 @@ class Update_rule_SPA_simd // Sum Product Algorithm
     std::vector<mipp::Reg<R>> values;
     mipp::Msk<mipp::N<R>()> sign;
     mipp::Reg<R> product;
+    mipp::Msk<mipp::N<R>()> one_zero;
+    mipp::Msk<mipp::N<R>()> two_or_more_zeros;
+    mipp::Msk<mipp::N<R>()> no_zero;
 
     int n_ite;
     int ite;
