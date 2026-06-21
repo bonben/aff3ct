@@ -63,7 +63,10 @@ Puncturer_5G<B, Q>::_depuncture(const Q* Y_N1, Q* Y_N2, const size_t /*frame_id*
         j++;
     }
     std::fill(Y_N2, Y_N2 + 2 * this->base_graph.Zc, (Q)0);
-    std::fill(Y_N2 + this->K, Y_N2 + this->K + this->base_graph.K_LDPC - this->K, std::numeric_limits<Q>::infinity());
+    if (std::is_integral<Q>::value)
+        std::fill(Y_N2 + this->K, Y_N2 + this->K + this->base_graph.K_LDPC - this->K, std::numeric_limits<Q>::max());
+    else
+        std::fill(Y_N2 + this->K, Y_N2 + this->K + this->base_graph.K_LDPC - this->K, std::numeric_limits<Q>::infinity());
 }
 
 // ==================================================================================== explicit template instantiation
