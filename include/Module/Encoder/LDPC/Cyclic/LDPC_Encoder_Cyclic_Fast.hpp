@@ -22,7 +22,6 @@ class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
   protected:
     std::vector<std::vector<B>> Rot; /* Matrix for Faster Encoding, filled from G. */
     const int K_ldpc;
-    std::vector<B> filled_input;
 
   public:
     /*!

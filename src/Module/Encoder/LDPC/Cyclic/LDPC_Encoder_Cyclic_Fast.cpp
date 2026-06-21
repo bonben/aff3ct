@@ -28,8 +28,6 @@ LDPC_Encoder_Cyclic_Fast<B>::LDPC_Encoder_Cyclic_Fast(const int K,
 {
     const std::string name = "LDPC_Encoder_Cyclic_Fast";
     this->set_name(name);
-    // Allocate filled_input
-    this->filled_input.resize(this->K_ldpc);
     this->G = LDPC_Encoder_Cyclic<B>::read_G_file(this->file_name);
     this->_fill_Rot();
 }
@@ -75,51 +73,37 @@ LDPC_Encoder_Cyclic_Fast<B>::_findItems(std::vector<B> v, int target)
 }
 
 template<typename B>
-std::vector<B>
-LDPC_Encoder_Cyclic_Fast<B>::_CSRAA(B* vect, const int beg)
-{
-    std::vector<B> info(this->Zc, 0);
-    std::vector<B> res(this->N - this->K_ldpc, 0);
-    for (int i = 0; i < (this->N - this->K_ldpc) / this->Zc; i++)
-    {
-        for (long unsigned int j = 0; j < this->Rot[i + (this->N - this->K_ldpc) / this->Zc * beg].size(); j++)
-        {
-            for (int k = 0; k < this->Zc; k++)
-            {
-                info[k] = vect[k];
-            }
-            std::rotate(
-              info.begin(), info.end() - this->Rot[i + (this->N - this->K_ldpc) / this->Zc * beg][j], info.end());
-            std::transform(info.begin(),
-                           info.end(),
-                           res.begin() + i * this->Zc,
-                           res.begin() + i * this->Zc,
-                           [](B& c, B& b) { return (c + b) % 2; });
-        }
-    }
-    return res;
-}
-
-template<typename B>
 void
 LDPC_Encoder_Cyclic_Fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 {
-    // Going from K to K_ldpc by filling with zeros
-    std::memcpy(this->filled_input.data(), U_K, sizeof(B) * this->K);
-    std::memset(this->filled_input.data() + this->K, 0, sizeof(B) * (this->K_ldpc - this->K));
-    std::memcpy(X_N, this->filled_input.data(), sizeof(B) * this->K_ldpc);
+    std::memcpy(X_N, U_K, sizeof(B) * this->K);
+    std::memset(X_N + this->K, 0, sizeof(B) * (this->K_ldpc - this->K));
 
-    std::vector<B> vect(this->N - this->K_ldpc, 0);
-    std::vector<B> res(this->N - this->K_ldpc, 0);
+    const int nb_blocks = (this->N - this->K_ldpc) / this->Zc;
+    bool first_time = true;
+    B* parity_bits = X_N + this->K_ldpc;
     for (int i = 0; i < this->K_ldpc / this->Zc; i++)
     {
-        res = this->_CSRAA((B*)(this->filled_input.data()) + i * this->Zc, i);
-        std::transform(vect.begin(), vect.end(), res.begin(), vect.begin(), [](B& c, B& b) { return (c + b) % 2; });
-    }
+        const B* input_ptr = X_N + i * this->Zc;
+        const int base = nb_blocks * i;
+        for (int j = 0; j < nb_blocks; j++)
+        {
+            B* parity_block = parity_bits + j * this->Zc;
+            if (first_time) std::memset(parity_block, 0, sizeof(B) * this->Zc);
 
-    for (int i = this->K_ldpc; i < this->N; i++)
-    {
-        X_N[i] = vect[i - this->K_ldpc];
+            const auto& shifts = this->Rot[j + base];
+            for (size_t k = 0; k < shifts.size(); k++)
+            {
+                const int shift = shifts[k];
+                int start = this->Zc - shift;
+                int l = 0;
+                for (; l < shift; l++)
+                    parity_block[l] ^= input_ptr[start + l];
+                for (; l < this->Zc; l++)
+                    parity_block[l] ^= input_ptr[l - shift];
+            }
+        }
+        first_time = false;
     }
 }
 
