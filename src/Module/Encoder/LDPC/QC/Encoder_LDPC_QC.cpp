@@ -18,12 +18,21 @@ using namespace aff3ct;
 using namespace aff3ct::module;
 
 template<typename B>
-Encoder_LDPC_QC<B>::Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name)
+Encoder_LDPC_QC<B>::Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name, const int K_LDPC)
   : Encoder_LDPC<B>(K, N)
   , Zc(Zc)
   , file_name(file_name)
   , G(K / Zc)
+  , K_LDPC(K_LDPC == -1 ? K : K_LDPC)
 {
+    if (this->K_LDPC < this->K)
+    {
+        std::stringstream message;
+        message << "'K_LDPC' has to be greater than 'K' ('K_LDPC' = " << this->K_LDPC << ", 'K' = "
+                << this->K << ").";
+        throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
+    }
+
     const std::string name = "Encoder_LDPC_QC";
     this->set_name(name);
     this->G = this->read_G_file(this->file_name);
@@ -61,7 +70,7 @@ Encoder_LDPC_QC<B>::read_G_file(const char* file_name)
 
 template<typename B>
 void
-Encoder_LDPC_QC<B>::_MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r)
+Encoder_LDPC_QC<B>::_multiply_add(std::vector<B>& v, int k, std::vector<B>& r)
 {
     std::vector<B> i(v.size(), 0);
     std::transform(v.begin(), v.end(), i.begin(), [k](B& c) { return c * k; });
@@ -70,15 +79,15 @@ Encoder_LDPC_QC<B>::_MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r)
 
 template<typename B>
 std::vector<B>
-Encoder_LDPC_QC<B>::_CSRAA(const int Zc, std::vector<B> Gen, const B* vect, const int K, const int N)
+Encoder_LDPC_QC<B>::_CSRAA(const int Zc, std::vector<B> Gen, const B* vect, const int K_LDPC, const int N)
 {
     int u;
-    std::vector<B> res(N - K, 0);
+    std::vector<B> res(N - K_LDPC, 0);
     for (int i = 0; i < Zc; i++)
     {
         u = vect[i];
-        this->_MultiplyAdd(Gen, u, res);
-        for (int j = 0; j < (N - K) / Zc; j++)
+        this->_multiply_add(Gen, u, res);
+        for (int j = 0; j < (N - K_LDPC) / Zc; j++)
         {
             std::rotate(Gen.begin() + j * Zc, Gen.begin() + (j + 1) * Zc - 1, Gen.begin() + (j + 1) * Zc);
         }
@@ -91,17 +100,20 @@ void
 Encoder_LDPC_QC<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 {
     std::memcpy(X_N, U_K, sizeof(B) * this->K);
-    std::vector<B> vect(this->N - this->K, 0);
-    std::vector<B> res(this->N - this->K, 0);
-    for (int i = 0; i < this->K / this->Zc; i++)
+    const int n_zeros_pad = this->K_LDPC - this->K;
+    std::memset(X_N + this->K, 0, sizeof(B) * n_zeros_pad);
+
+    std::vector<B> vect(this->N - this->K_LDPC, 0);
+    std::vector<B> res(this->N - this->K_LDPC, 0);
+    for (int i = 0; i < this->K_LDPC / this->Zc; i++)
     {
-        res = this->_CSRAA(this->Zc, this->G[i], U_K + i * this->Zc, this->K, this->N);
+        res = this->_CSRAA(this->Zc, this->G[i], X_N + i * this->Zc, this->K_LDPC, this->N);
         std::transform(vect.begin(), vect.end(), res.begin(), vect.begin(), [](B& c, B& b) { return (c + b) % 2; });
     }
 
-    for (int i = this->K; i < this->N; i++)
+    for (int i = this->K_LDPC; i < this->N; i++)
     {
-        X_N[i] = vect[i - this->K];
+        X_N[i] = vect[i - this->K_LDPC];
     }
 }
 

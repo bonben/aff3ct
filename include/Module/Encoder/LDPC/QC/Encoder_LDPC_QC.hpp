@@ -22,6 +22,7 @@ class Encoder_LDPC_QC : public Encoder_LDPC<B>
     const int Zc;                  /*!< Lifting size  */
     const char* file_name;         /*!< File containing the parity check matrix */
     std::vector<std::vector<B>> G; /*!< To store generator matrix */
+    const int K_LDPC;
 
   public:
     /*!
@@ -31,8 +32,9 @@ class Encoder_LDPC_QC : public Encoder_LDPC<B>
      * \param N:         Number of encoded bits.
      * \param Zc:        Lifting size.
      * \param file_name: File containing the generator matrix.
+     * \param K_LDPC:    Number of information bits in base graph.
      */
-    Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name);
+    Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name, const int K_LDPC = -1);
 
     /*!
      * \brief Destructor.
@@ -48,7 +50,7 @@ class Encoder_LDPC_QC : public Encoder_LDPC<B>
     std::vector<std::vector<B>> read_G_file(const char* file_name);
     void _encode(const B* U_K, B* X_N, const size_t frame_id);
     std::vector<B> _CSRAA(const int Zc, std::vector<B> Gen, const B* vect, const int K, const int N);
-    void _MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r);
+    void _multiply_add(std::vector<B>& v, int k, std::vector<B>& r);
 };
 }
 }

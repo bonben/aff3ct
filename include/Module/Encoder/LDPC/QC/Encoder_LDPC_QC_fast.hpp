@@ -20,8 +20,7 @@ template<typename B = int>
 class Encoder_LDPC_QC_fast : public Encoder_LDPC_QC<B>
 {
   protected:
-    std::vector<std::vector<B>> Rot; /* Matrix for Faster Encoding, filled from G. */
-    const int K_LDPC;
+    std::vector<std::vector<B>> rot; /* Matrix for Faster Encoding, filled from G. */
 
   public:
     /*!
@@ -33,7 +32,7 @@ class Encoder_LDPC_QC_fast : public Encoder_LDPC_QC<B>
      * \param file_name: File containing the parity check matrix
      * \param K_LDPC:    Number of information bits in base graph.
      */
-    Encoder_LDPC_QC_fast(const int K, const int N, const int Zc, const char* file_name, const int K_LDPC);
+    Encoder_LDPC_QC_fast(const int K, const int N, const int Zc, const char* file_name, const int K_LDPC = -1);
 
     /*!
      * \brief Destructor.
@@ -47,12 +46,11 @@ class Encoder_LDPC_QC_fast : public Encoder_LDPC_QC<B>
 
   protected:
     /*!
-     * \brief Fill Matrix Rot from generator matrix.
+     * \brief Fill Matrix rot from generator matrix.
      */
-    void _fill_Rot();
+    void _fill_rot();
     void _encode(const B* U_K, B* X_N, const size_t frame_id);
-    std::vector<B> _CSRAA(B* vect, const int beg);
-    std::vector<B> _findItems(std::vector<B> v, int target);
+    std::vector<B> _find_items(std::vector<B> v, int target);
 };
 }
 }

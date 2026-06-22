@@ -23,13 +23,12 @@ Encoder_LDPC_QC_fast<B>::Encoder_LDPC_QC_fast(const int K,
                                               const int Zc,
                                               const char* file_name,
                                               const int K_LDPC)
-  : Encoder_LDPC_QC<B>(K, N, Zc, file_name)
-  , K_LDPC(K_LDPC)
+  : Encoder_LDPC_QC<B>(K, N, Zc, file_name, K_LDPC)
 {
     const std::string name = "Encoder_LDPC_QC_fast";
     this->set_name(name);
     this->G = Encoder_LDPC_QC<B>::read_G_file(this->file_name);
-    this->_fill_Rot();
+    this->_fill_rot();
 }
 
 template<typename B>
@@ -43,7 +42,7 @@ Encoder_LDPC_QC_fast<B>::clone() const
 
 template<typename B>
 void
-Encoder_LDPC_QC_fast<B>::_fill_Rot()
+Encoder_LDPC_QC_fast<B>::_fill_rot()
 {
     std::vector<B> v(this->Zc);
     for (int j = 0; j < this->K_LDPC / this->Zc; j++)
@@ -51,16 +50,16 @@ Encoder_LDPC_QC_fast<B>::_fill_Rot()
         for (int i = 0; i < (this->N - this->K_LDPC) / this->Zc; i++)
         {
             std::copy(this->G[j].begin() + i * this->Zc, this->G[j].begin() + (i + 1) * this->Zc, v.begin());
-            this->Rot.push_back(std::vector<B>());
-            this->Rot.reserve(this->Rot.empty() ? 0 : this->Rot.front().size());
-            this->Rot[i + (this->N - this->K_LDPC) / this->Zc * j] = _findItems(v, 1);
+            this->rot.push_back(std::vector<B>());
+            this->rot.reserve(this->rot.empty() ? 0 : this->rot.front().size());
+            this->rot[i + (this->N - this->K_LDPC) / this->Zc * j] = _find_items(v, 1);
         }
     }
 }
 
 template<typename B>
 std::vector<B>
-Encoder_LDPC_QC_fast<B>::_findItems(std::vector<B> v, int target)
+Encoder_LDPC_QC_fast<B>::_find_items(std::vector<B> v, int target)
 {
     std::vector<B> indices;
     auto it = v.begin();
@@ -77,7 +76,8 @@ void
 Encoder_LDPC_QC_fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 {
     std::memcpy(X_N, U_K, sizeof(B) * this->K);
-    std::memset(X_N + this->K, 0, sizeof(B) * (this->K_LDPC - this->K));
+    const int n_zeros_pad = this->K_LDPC - this->K;
+    std::memset(X_N + this->K, 0, sizeof(B) * n_zeros_pad);
 
     const int nb_blocks = (this->N - this->K_LDPC) / this->Zc;
     bool first_time = true;
@@ -91,7 +91,7 @@ Encoder_LDPC_QC_fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
             B* parity_block = parity_bits + j * this->Zc;
             if (first_time) std::memset(parity_block, 0, sizeof(B) * this->Zc);
 
-            const auto& shifts = this->Rot[j + base];
+            const auto& shifts = this->rot[j + base];
             for (size_t k = 0; k < shifts.size(); k++)
             {
                 const int shift = shifts[k];
