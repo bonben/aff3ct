@@ -1,5 +1,5 @@
-#ifndef LDPC_ENCODER_CYCLIC_HPP_
-#define LDPC_ENCODER_CYCLIC_HPP_
+#ifndef ENCODER_LDPC_QC_HPP_
+#define ENCODER_LDPC_QC_HPP_
 
 #include <vector>
 
@@ -11,12 +11,12 @@ namespace aff3ct
 namespace module
 {
 /*!
- * \class LDPC_Encoder_Cyclic: Exploit cyclic properties of Quasi-Cyclic (QC) LDPC codes for faster encoding.
+ * \class Encoder_LDPC_QC: Exploit cyclic properties of Quasi-Cyclic (QC) LDPC codes for faster encoding.
  *
  * \brief
  */
 template<typename B = int>
-class LDPC_Encoder_Cyclic : public Encoder_LDPC<B>
+class Encoder_LDPC_QC : public Encoder_LDPC<B>
 {
   protected:
     const int Zc;                  /*!< Lifting size  */
@@ -32,17 +32,17 @@ class LDPC_Encoder_Cyclic : public Encoder_LDPC<B>
      * \param Zc:        Lifting size.
      * \param file_name: File containing the generator matrix.
      */
-    LDPC_Encoder_Cyclic(const int K, const int N, const int Zc, const char* file_name);
+    Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name);
 
     /*!
      * \brief Destructor.
      */
-    virtual ~LDPC_Encoder_Cyclic() = default;
+    virtual ~Encoder_LDPC_QC() = default;
 
     /*!
      * \brief Clone.
      */
-    virtual LDPC_Encoder_Cyclic<B>* clone() const;
+    virtual Encoder_LDPC_QC<B>* clone() const;
 
   protected:
     std::vector<std::vector<B>> read_G_file(const char* file_name);
@@ -53,4 +53,4 @@ class LDPC_Encoder_Cyclic : public Encoder_LDPC<B>
 }
 }
 
-#endif /* LDPC_ENCODER_CYCLIC_HPP_ */
+#endif /* ENCODER_LDPC_QC_HPP_ */

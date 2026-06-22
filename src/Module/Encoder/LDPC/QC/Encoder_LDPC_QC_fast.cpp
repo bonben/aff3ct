@@ -12,55 +12,55 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC_fast.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
 
 template<typename B>
-LDPC_Encoder_Cyclic_Fast<B>::LDPC_Encoder_Cyclic_Fast(const int K,
-                                                      const int N,
-                                                      const int Zc,
-                                                      const char* file_name,
-                                                      const int K_ldpc)
-  : LDPC_Encoder_Cyclic<B>(K, N, Zc, file_name)
-  , K_ldpc(K_ldpc)
+Encoder_LDPC_QC_fast<B>::Encoder_LDPC_QC_fast(const int K,
+                                              const int N,
+                                              const int Zc,
+                                              const char* file_name,
+                                              const int K_LDPC)
+  : Encoder_LDPC_QC<B>(K, N, Zc, file_name)
+  , K_LDPC(K_LDPC)
 {
-    const std::string name = "LDPC_Encoder_Cyclic_Fast";
+    const std::string name = "Encoder_LDPC_QC_fast";
     this->set_name(name);
-    this->G = LDPC_Encoder_Cyclic<B>::read_G_file(this->file_name);
+    this->G = Encoder_LDPC_QC<B>::read_G_file(this->file_name);
     this->_fill_Rot();
 }
 
 template<typename B>
-LDPC_Encoder_Cyclic_Fast<B>*
-LDPC_Encoder_Cyclic_Fast<B>::clone() const
+Encoder_LDPC_QC_fast<B>*
+Encoder_LDPC_QC_fast<B>::clone() const
 {
-    auto m = new LDPC_Encoder_Cyclic_Fast(*this);
+    auto m = new Encoder_LDPC_QC_fast(*this);
     m->deep_copy(*this);
     return m;
 }
 
 template<typename B>
 void
-LDPC_Encoder_Cyclic_Fast<B>::_fill_Rot()
+Encoder_LDPC_QC_fast<B>::_fill_Rot()
 {
     std::vector<B> v(this->Zc);
-    for (int j = 0; j < this->K_ldpc / this->Zc; j++)
+    for (int j = 0; j < this->K_LDPC / this->Zc; j++)
     {
-        for (int i = 0; i < (this->N - this->K_ldpc) / this->Zc; i++)
+        for (int i = 0; i < (this->N - this->K_LDPC) / this->Zc; i++)
         {
             std::copy(this->G[j].begin() + i * this->Zc, this->G[j].begin() + (i + 1) * this->Zc, v.begin());
             this->Rot.push_back(std::vector<B>());
             this->Rot.reserve(this->Rot.empty() ? 0 : this->Rot.front().size());
-            this->Rot[i + (this->N - this->K_ldpc) / this->Zc * j] = _findItems(v, 1);
+            this->Rot[i + (this->N - this->K_LDPC) / this->Zc * j] = _findItems(v, 1);
         }
     }
 }
 
 template<typename B>
 std::vector<B>
-LDPC_Encoder_Cyclic_Fast<B>::_findItems(std::vector<B> v, int target)
+Encoder_LDPC_QC_fast<B>::_findItems(std::vector<B> v, int target)
 {
     std::vector<B> indices;
     auto it = v.begin();
@@ -74,15 +74,15 @@ LDPC_Encoder_Cyclic_Fast<B>::_findItems(std::vector<B> v, int target)
 
 template<typename B>
 void
-LDPC_Encoder_Cyclic_Fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
+Encoder_LDPC_QC_fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 {
     std::memcpy(X_N, U_K, sizeof(B) * this->K);
-    std::memset(X_N + this->K, 0, sizeof(B) * (this->K_ldpc - this->K));
+    std::memset(X_N + this->K, 0, sizeof(B) * (this->K_LDPC - this->K));
 
-    const int nb_blocks = (this->N - this->K_ldpc) / this->Zc;
+    const int nb_blocks = (this->N - this->K_LDPC) / this->Zc;
     bool first_time = true;
-    B* parity_bits = X_N + this->K_ldpc;
-    for (int i = 0; i < this->K_ldpc / this->Zc; i++)
+    B* parity_bits = X_N + this->K_LDPC;
+    for (int i = 0; i < this->K_LDPC / this->Zc; i++)
     {
         const B* input_ptr = X_N + i * this->Zc;
         const int base = nb_blocks * i;
@@ -108,14 +108,14 @@ LDPC_Encoder_Cyclic_Fast<B>::_encode(const B* U_K, B* X_N, const size_t frame_id
 }
 
 // ==================================================================================== explicit template instantiation
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC_fast.hpp"
 #include "Tools/types.h"
 #ifdef AFF3CT_MULTI_PREC
-template class aff3ct::module::LDPC_Encoder_Cyclic_Fast<B_8>;
-template class aff3ct::module::LDPC_Encoder_Cyclic_Fast<B_16>;
-template class aff3ct::module::LDPC_Encoder_Cyclic_Fast<B_32>;
-template class aff3ct::module::LDPC_Encoder_Cyclic_Fast<B_64>;
+template class aff3ct::module::Encoder_LDPC_QC_fast<B_8>;
+template class aff3ct::module::Encoder_LDPC_QC_fast<B_16>;
+template class aff3ct::module::Encoder_LDPC_QC_fast<B_32>;
+template class aff3ct::module::Encoder_LDPC_QC_fast<B_64>;
 #else
-template class aff3ct::module::LDPC_Encoder_Cyclic_Fast<B>;
+template class aff3ct::module::Encoder_LDPC_QC_fast<B>;
 #endif
 // ==================================================================================== explicit template instantiation

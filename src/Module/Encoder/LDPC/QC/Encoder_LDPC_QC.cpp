@@ -12,35 +12,35 @@
 
 #include "Tools/Exception/exception.hpp"
 
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC.hpp"
 
 using namespace aff3ct;
 using namespace aff3ct::module;
 
 template<typename B>
-LDPC_Encoder_Cyclic<B>::LDPC_Encoder_Cyclic(const int K, const int N, const int Zc, const char* file_name)
+Encoder_LDPC_QC<B>::Encoder_LDPC_QC(const int K, const int N, const int Zc, const char* file_name)
   : Encoder_LDPC<B>(K, N)
   , Zc(Zc)
   , file_name(file_name)
   , G(K / Zc)
 {
-    const std::string name = "LDPC_Encoder_Cyclic";
+    const std::string name = "Encoder_LDPC_QC";
     this->set_name(name);
     this->G = this->read_G_file(this->file_name);
 }
 
 template<typename B>
-LDPC_Encoder_Cyclic<B>*
-LDPC_Encoder_Cyclic<B>::clone() const
+Encoder_LDPC_QC<B>*
+Encoder_LDPC_QC<B>::clone() const
 {
-    auto m = new LDPC_Encoder_Cyclic(*this);
+    auto m = new Encoder_LDPC_QC(*this);
     m->deep_copy(*this);
     return m;
 }
 
 template<typename B>
 std::vector<std::vector<B>>
-LDPC_Encoder_Cyclic<B>::read_G_file(const char* file_name)
+Encoder_LDPC_QC<B>::read_G_file(const char* file_name)
 {
     std::ifstream fichier(file_name, std::ios::in);
     std::string ligne;
@@ -61,7 +61,7 @@ LDPC_Encoder_Cyclic<B>::read_G_file(const char* file_name)
 
 template<typename B>
 void
-LDPC_Encoder_Cyclic<B>::_MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r)
+Encoder_LDPC_QC<B>::_MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r)
 {
     std::vector<B> i(v.size(), 0);
     std::transform(v.begin(), v.end(), i.begin(), [k](B& c) { return c * k; });
@@ -70,7 +70,7 @@ LDPC_Encoder_Cyclic<B>::_MultiplyAdd(std::vector<B>& v, int k, std::vector<B>& r
 
 template<typename B>
 std::vector<B>
-LDPC_Encoder_Cyclic<B>::_CSRAA(const int Zc, std::vector<B> Gen, const B* vect, const int K, const int N)
+Encoder_LDPC_QC<B>::_CSRAA(const int Zc, std::vector<B> Gen, const B* vect, const int K, const int N)
 {
     int u;
     std::vector<B> res(N - K, 0);
@@ -88,7 +88,7 @@ LDPC_Encoder_Cyclic<B>::_CSRAA(const int Zc, std::vector<B> Gen, const B* vect, 
 
 template<typename B>
 void
-LDPC_Encoder_Cyclic<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
+Encoder_LDPC_QC<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 {
     std::memcpy(X_N, U_K, sizeof(B) * this->K);
     std::vector<B> vect(this->N - this->K, 0);
@@ -106,14 +106,14 @@ LDPC_Encoder_Cyclic<B>::_encode(const B* U_K, B* X_N, const size_t frame_id)
 }
 
 // ==================================================================================== explicit template instantiation
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC.hpp"
 #include "Tools/types.h"
 #ifdef AFF3CT_MULTI_PREC
-template class aff3ct::module::LDPC_Encoder_Cyclic<B_8>;
-template class aff3ct::module::LDPC_Encoder_Cyclic<B_16>;
-template class aff3ct::module::LDPC_Encoder_Cyclic<B_32>;
-template class aff3ct::module::LDPC_Encoder_Cyclic<B_64>;
+template class aff3ct::module::Encoder_LDPC_QC<B_8>;
+template class aff3ct::module::Encoder_LDPC_QC<B_16>;
+template class aff3ct::module::Encoder_LDPC_QC<B_32>;
+template class aff3ct::module::Encoder_LDPC_QC<B_64>;
 #else
-template class aff3ct::module::LDPC_Encoder_Cyclic<B>;
+template class aff3ct::module::Encoder_LDPC_QC<B>;
 #endif
 // ==================================================================================== explicit template instantiation

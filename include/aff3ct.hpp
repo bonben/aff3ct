@@ -612,12 +612,6 @@
 #ifndef ENCODER_HPP_
 #include <Module/Encoder/Encoder.hpp>
 #endif
-#ifndef LDPC_ENCODER_CYCLIC_FAST_HPP_
-#include <Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp>
-#endif
-#ifndef LDPC_ENCODER_CYCLIC_HPP_
-#include <Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp>
-#endif
 #ifndef ENCODER_LDPC_DVBS2_HPP_
 #include <Module/Encoder/LDPC/DVBS2/Encoder_LDPC_DVBS2.hpp>
 #endif
@@ -632,6 +626,12 @@
 #endif
 #ifndef ENCODER_LDPC_FROM_QC_HPP_
 #include <Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp>
+#endif
+#ifndef ENCODER_LDPC_QC_FAST_HPP_
+#include <Module/Encoder/LDPC/QC/Encoder_LDPC_QC_fast.hpp>
+#endif
+#ifndef ENCODER_LDPC_QC_HPP_
+#include <Module/Encoder/LDPC/QC/Encoder_LDPC_QC.hpp>
 #endif
 #ifndef ENCODER_NO_HPP_
 #include <Module/Encoder/NO/Encoder_NO.hpp>

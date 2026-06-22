@@ -1,9 +1,9 @@
-#ifndef LDPC_ENCODER_CYCLIC_FAST_HPP_
-#define LDPC_ENCODER_CYCLIC_FAST_HPP_
+#ifndef ENCODER_LDPC_QC_FAST_HPP_
+#define ENCODER_LDPC_QC_FAST_HPP_
 
 #include <vector>
 
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC.hpp"
 #include "Module/Module.hpp"
 #include "Tools/Interface/Interface_reset.hpp"
 
@@ -12,16 +12,16 @@ namespace aff3ct
 namespace module
 {
 /*!
- * \class LDPC_Encoder_Cyclic_Fast: Improved version of LDPC_Encoder_Cyclic (further exploitation of QC properties).
+ * \class Encoder_LDPC_QC_fast: Improved version of LDPC_Encoder_Cyclic (further exploitation of QC properties).
  *
  * \brief
  */
 template<typename B = int>
-class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
+class Encoder_LDPC_QC_fast : public Encoder_LDPC_QC<B>
 {
   protected:
     std::vector<std::vector<B>> Rot; /* Matrix for Faster Encoding, filled from G. */
-    const int K_ldpc;
+    const int K_LDPC;
 
   public:
     /*!
@@ -31,19 +31,19 @@ class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
      * \param N:         Number of encoded bits.
      * \param Zc:        Lifting size.
      * \param file_name: File containing the parity check matrix
-     * \param K_ldpc:    Number of information bits in base graph.
+     * \param K_LDPC:    Number of information bits in base graph.
      */
-    LDPC_Encoder_Cyclic_Fast(const int K, const int N, const int Zc, const char* file_name, const int K_ldpc);
+    Encoder_LDPC_QC_fast(const int K, const int N, const int Zc, const char* file_name, const int K_LDPC);
 
     /*!
      * \brief Destructor.
      */
-    virtual ~LDPC_Encoder_Cyclic_Fast() = default;
+    virtual ~Encoder_LDPC_QC_fast() = default;
 
     /*!
      * \brief Clone.
      */
-    virtual LDPC_Encoder_Cyclic_Fast<B>* clone() const;
+    virtual Encoder_LDPC_QC_fast<B>* clone() const;
 
   protected:
     /*!
@@ -57,4 +57,4 @@ class LDPC_Encoder_Cyclic_Fast : public LDPC_Encoder_Cyclic<B>
 }
 }
 
-#endif /* LDPC_ENCODER_CYCLIC_FAST_HPP_ */
+#endif /* ENCODER_LDPC_QC_FAST_HPP_ */

@@ -4,12 +4,12 @@
 #include <utility>
 
 #include "Factory/Module/Encoder/LDPC/Encoder_LDPC.hpp"
-#include "Module/Encoder/LDPC/Cyclic/LDPC_Encoder_Cyclic_Fast.hpp"
 #include "Module/Encoder/LDPC/DVBS2/Encoder_LDPC_DVBS2.hpp"
 #include "Module/Encoder/LDPC/Encoder_LDPC.hpp"
 #include "Module/Encoder/LDPC/From_H/Encoder_LDPC_from_H.hpp"
 #include "Module/Encoder/LDPC/From_IRA/Encoder_LDPC_from_IRA.hpp"
 #include "Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC_fast.hpp"
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
 #include "Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
@@ -151,7 +151,7 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
                      std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
             G_path = cli::modify_path<cli::Is_file>(G_path);
         }
-        return new module::LDPC_Encoder_Cyclic_Fast<B>(
+        return new module::Encoder_LDPC_QC_fast<B>(
           this->K, base_graph.N_LDPC, base_graph.Zc, G_path.c_str(), base_graph.K_LDPC);
     }
 
