@@ -103,6 +103,7 @@ jobs:
       
       - name: Update submodules with fallback
         run: |
+          git config --global --add safe.directory '*'
           if ! git submodule update --init --recursive; then
             echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
             git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
@@ -144,6 +145,7 @@ jobs:
       - name: Update submodules with fallback
         shell: bash
         run: |
+          git config --global --add safe.directory '*'
           if ! git submodule update --init --recursive; then
             echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
             git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
@@ -187,6 +189,7 @@ jobs:
           
       - name: Update submodules with fallback
         run: |
+          git config --global --add safe.directory '*'
           if ! git submodule update --init --recursive; then
             echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
             git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
