@@ -164,13 +164,11 @@ jobs:
           cd build
           cmake .. -DCMAKE_CXX_FLAGS="${CFLAGS} /MP" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" ${CMAKE_OPT} -DCMAKE_INSTALL_PREFIX="${NAME}"
           cmake --build . --config Release --parallel ${NUMBER_OF_PROCESSORS}
-          cd ..
-          mv build "${NAME}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: build-windows-${{ matrix.compiler }}
-          path: ${{ env.NAME }}
+          path: build
           retention-days: 7
 
   build-macos:
