@@ -153,12 +153,17 @@ jobs:
             git submodule update --init --recursive
           fi
 
+      - name: Install vcpkg dependencies
+        shell: pwsh
+        run: |
+          vcpkg install getopt-win32:x64-windows
+
       - name: Build Windows
         shell: pwsh
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_FLAGS="${env:CFLAGS} /MP" ${env:CMAKE_OPT} -DCMAKE_INSTALL_PREFIX="${env:NAME}"
+          cmake .. -DCMAKE_CXX_FLAGS="${env:CFLAGS} /MP" -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" ${env:CMAKE_OPT} -DCMAKE_INSTALL_PREFIX="${env:NAME}"
           cmake --build . --config Release --parallel $env:NUMBER_OF_PROCESSORS
           cd ..
           Move-Item -Path "build" -Destination "${env:NAME}"
