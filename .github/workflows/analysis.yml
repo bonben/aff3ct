@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: false
       - name: Generate and check headers
         run: |
@@ -31,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: false
       - name: Run cppcheck
         run: ./ci/analysis-cppcheck.sh
@@ -46,6 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: false
       - name: Run clang-format
         run: |
@@ -118,6 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: false
       - name: Run documentation check
         run: |
