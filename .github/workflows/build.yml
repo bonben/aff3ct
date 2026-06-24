@@ -1,0 +1,205 @@
+name: Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Standard GCC
+          - compiler: gcc-x64-sse4.2
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+            cflags_spe: "-m64 -msse4.2"
+            prec: "MULTI"
+            lflags: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
+            cmake_opt_spe: ""
+            cc: gcc
+            cxx: g++
+          
+          # GCC Opt variants
+          - compiler: gcc-nointr
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+            cflags_spe: "-DMIPP_NO_INTRINSICS"
+            prec: "MULTI"
+            lflags: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
+            cmake_opt_spe: ""
+            cc: gcc
+            cxx: g++
+
+          - compiler: gcc-x64-avx2
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+            cflags_spe: "-m64 -mavx2 -mfma"
+            prec: "MULTI"
+            lflags: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
+            cmake_opt_spe: ""
+            cc: gcc
+            cxx: g++
+
+          - compiler: gcc-8-bit
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+            cflags_spe: "-march=native"
+            prec: "8"
+            lflags: ""
+            cmake_opt_spe: "-DAFF3CT_LINK_GSL=ON"
+            cc: gcc
+            cxx: g++
+
+          # GCC MPI
+          - compiler: gcc-mpi
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_openmpi:v4.0.3
+            cflags_spe: "-march=native"
+            prec: "MULTI"
+            lflags: ""
+            cmake_opt_spe: "-DAFF3CT_LINK_GSL=ON -DAFF3CT_MPI=ON"
+            cc: gcc
+            cxx: g++
+
+          # Clang
+          - compiler: clang
+            image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_clang:v10.0.0
+            cflags_spe: "-Wall -Wno-overloaded-virtual -funroll-loops"
+            prec: "MULTI"
+            lflags: ""
+            cmake_opt_spe: "-DAFF3CT_LINK_GSL=ON"
+            cc: clang
+            cxx: clang++
+
+          # ICPC
+          - compiler: icpc
+            image: intel/oneapi-hpckit:2022.2-devel-ubuntu20.04
+            cflags_spe: "-Wall -funroll-loops -march=native -std=c++11"
+            prec: "MULTI"
+            lflags: ""
+            cmake_opt_spe: "-DAFF3CT_LINK_GSL=OFF -DAFF3CT_LINK_MKL=ON"
+            cc: icc
+            cxx: icpc
+
+    container: ${{ matrix.image }}
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF ${{ matrix.cmake_opt_spe }}"
+      NAME: build_linux_${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+      
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Prepare environment
+        run: apt-get update && apt-get install -y pkg-config
+
+      - name: Build Linux
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+          
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-linux-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
+          retention-days: 7
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - compiler: msvc-avx
+            prec: "MULTI"
+            cflags_spe: "-D_CRT_SECURE_NO_DEPRECATE /MT /EHsc /arch:AVX"
+    env:
+      CFLAGS: "${{ matrix.cflags_spe }}"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF -DSPU_STACKTRACE=OFF"
+      NAME: build_windows_${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+          
+      - name: Update submodules with fallback
+        shell: bash
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build Windows
+        shell: pwsh
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_FLAGS="${env:CFLAGS} /MP" ${env:CMAKE_OPT} -DCMAKE_INSTALL_PREFIX="${env:NAME}"
+          cmake --build . --config Release --parallel $env:NUMBER_OF_PROCESSORS
+          cd ..
+          Move-Item -Path "build" -Destination "${env:NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-windows-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
+          retention-days: 7
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - compiler: clang
+            prec: "MULTI"
+    env:
+      CC: clang
+      CXX: clang++
+      CFLAGS: "-Wall -funroll-loops"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF"
+      NAME: build_macos_${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+          
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build macOS
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-macos-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
+          retention-days: 7
