@@ -1,0 +1,110 @@
+name: Analysis
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  headers:
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Generate and check headers
+        run: |
+          apt-get update && apt-get install -y diffutils
+          ./scripts/generate_aff3ct_header.sh aff3ct.hpp
+          diff aff3ct.hpp include/aff3ct.hpp
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_cppcheck:v1.9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Run cppcheck
+        run: ./ci/analysis-cppcheck.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-cppcheck-logs
+          path: cppcheck/
+
+  clang-format:
+    runs-on: ubuntu-latest
+    container: ubuntu:22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Run clang-format
+        run: |
+          apt-get update
+          apt-get -y install clang-format diffutils
+          clang-format --version
+          mkdir original_code
+          cp -r include original_code
+          cp -r src original_code
+          ./scripts/apply_clang_format.sh
+          mkdir new_code
+          cp -r include new_code
+          cp -r src new_code
+          diff -r new_code original_code
+
+  clang:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_clang:v10.0.0
+    env:
+      CFLAGS: -pedantic -fdiagnostics-show-option -Wall -Wno-overloaded-virtual
+      CMAKE_OPT: -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=OFF -DAFF3CT_COMPILE_SHARED_LIB=OFF -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF
+      NAME: build_analysis_clang
+      REPORTS_DIR: clang_reports
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run analysis clang
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/analysis-clang.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-clang-reports
+          path: clang_reports/
+
+  git-submodules:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_git:v2.25.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run git submodule check
+        run: |
+          source ./ci/tools/git-branch.sh
+          ./ci/analysis-git-submodule.sh
+
+  documentation:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_doc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Run documentation check
+        run: |
+          export THREADS="1"
+          ./ci/analysis-documentation.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-documentation
+          path: |
+            doc/build/html
+            doc/build/doxygen
