@@ -91,6 +91,7 @@ jobs:
           path: clang_reports/
 
   git-submodules:
+    if: github.ref_name == 'master' || github.ref_name == 'develop'
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_git:v2.25.1
     steps:
