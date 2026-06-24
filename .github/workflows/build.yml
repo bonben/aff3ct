@@ -65,6 +65,7 @@ jobs:
             prec: "MULTI"
             lflags: ""
             cmake_opt_spe: "-DAFF3CT_LINK_GSL=ON -DAFF3CT_MPI=ON"
+            cmake_opt_lib: "-DAFF3CT_COMPILE_STATIC_LIB=OFF -DAFF3CT_COMPILE_SHARED_LIB=OFF"
             cc: gcc
             cxx: g++
 
@@ -93,7 +94,8 @@ jobs:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
       CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
-      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF ${{ matrix.cmake_opt_spe }}"
+      CMAKE_OPT_LIB: ${{ matrix.cmake_opt_lib || '-DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON' }}
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON ${{ env.CMAKE_OPT_LIB }} -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF ${{ matrix.cmake_opt_spe }}"
       NAME: build_linux_${{ matrix.compiler }}
     steps:
       - uses: actions/checkout@v4
