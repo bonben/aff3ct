@@ -17,10 +17,10 @@
 # 	export GIT_BRANCH
 # fi
 
-if [ -z "$CI_COMMIT_REF_NAME" ]
+if [ -z "$GITHUB_REF_NAME" ]
 then
 	echo "Git branch can't be found, exit."
 	exit 1;
 fi
 
-export GIT_BRANCH=$CI_COMMIT_REF_NAME
+export GIT_BRANCH=$GITHUB_REF_NAME
