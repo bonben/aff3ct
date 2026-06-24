@@ -28,8 +28,7 @@ Encoder_LDPC_QC<B>::Encoder_LDPC_QC(const int K, const int N, const int Zc, cons
     if (this->K_LDPC < this->K)
     {
         std::stringstream message;
-        message << "'K_LDPC' has to be greater than 'K' ('K_LDPC' = " << this->K_LDPC << ", 'K' = "
-                << this->K << ").";
+        message << "'K_LDPC' has to be greater than 'K' ('K_LDPC' = " << this->K_LDPC << ", 'K' = " << this->K << ").";
         throw spu::tools::invalid_argument(__FILE__, __LINE__, __func__, message.str());
     }
 
