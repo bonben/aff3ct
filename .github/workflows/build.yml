@@ -112,7 +112,7 @@ jobs:
           fi
 
       - name: Prepare environment
-        run: apt-get update && apt-get install -y pkg-config
+        run: apt-get update || true; apt-get install -y pkg-config
 
       - name: Build Linux
         run: |
