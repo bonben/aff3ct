@@ -1,8 +1,6 @@
 #include <algorithm>
 #include <limits>
-#ifdef _MSC_VER
-#include <iterator>
-#endif
+#include <limits>
 #include <streampu.hpp>
 
 #include "Tools/Code/Polar/API/internal_functions/functions_polar_seq.h"
@@ -294,22 +292,14 @@ template<typename B, int N_ELMTS>
 void
 xo0_seq<B, N_ELMTS>::apply(const B* __restrict s_b, B* __restrict s_c, const int /*n_elmts*/)
 {
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + N_ELMTS, stdext::checked_array_iterator<B*>(s_c, N_ELMTS));
-#else
     std::copy(s_b, s_b + N_ELMTS, s_c);
-#endif
 }
 
 template<typename B>
 void
 xo0_seq<B, 0>::apply(const B* __restrict s_b, B* __restrict s_c, const int n_elmts)
 {
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + n_elmts, stdext::checked_array_iterator<B*>(s_c, n_elmts));
-#else
     std::copy(s_b, s_b + n_elmts, s_c);
-#endif
 }
 
 }

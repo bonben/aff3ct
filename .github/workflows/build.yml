@@ -135,7 +135,7 @@ jobs:
             cflags_spe: "-D_CRT_SECURE_NO_DEPRECATE /MT /EHsc /arch:AVX"
     env:
       CFLAGS: "${{ matrix.cflags_spe }}"
-      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF -DSPU_STACKTRACE=OFF"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=${{ matrix.prec }} -DAFF3CT_EXT_STRINGS=OFF -DAFF3CT_STACKTRACE=OFF"
       NAME: build_windows_${{ matrix.compiler }}
     steps:
       - uses: actions/checkout@v4
