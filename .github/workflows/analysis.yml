@@ -67,7 +67,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
       - name: Run analysis clang
         run: |
           source ./ci/tools/threads.sh
@@ -84,7 +91,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
       - name: Run git submodule check
         run: |
           source ./ci/tools/git-branch.sh
