@@ -9,8 +9,8 @@ namespace aff3ct
 {
 namespace module
 {
-template<typename B, typename R, class Update_rule>
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::Decoder_LDPC_BP_horizontal_layered(
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::Decoder_LDPC_BP_horizontal_layered(
   const int K,
   const int N,
   const int n_ite,
@@ -37,37 +37,37 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::Decoder_LDPC_BP_horizonta
     this->reset();
 }
 
-template<typename B, typename R, class Update_rule>
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>*
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::clone() const
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>*
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::clone() const
 {
     auto m = new Decoder_LDPC_BP_horizontal_layered(*this);
     m->deep_copy(*this);
     return m;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_reset(const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_reset(const size_t frame_id)
 {
     std::fill(this->messages[frame_id].begin(), this->messages[frame_id].end(), (R)0);
     std::fill(this->var_nodes[frame_id].begin(), this->var_nodes[frame_id].end(), (R)0);
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_load(const R* Y_N, const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_load(const R* Y_N, const size_t frame_id)
 {
     for (auto v = 0; v < (int)var_nodes[frame_id].size(); v++)
         this->var_nodes[frame_id][v] += Y_N[v]; // var_nodes contain previous extrinsic information
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siso(const R* Y_N1,
-                                                                    int8_t* CWD,
-                                                                    R* Y_N2,
-                                                                    const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_decode_siso(const R* Y_N1,
+                                                                                      int8_t* CWD,
+                                                                                      R* Y_N2,
+                                                                                      const size_t frame_id)
 {
     // memory zones initialization
     this->_load(Y_N1, frame_id);
@@ -86,12 +86,12 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siso(const R* Y_N
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siho(const R* Y_N,
-                                                                    int8_t* CWD,
-                                                                    B* V_K,
-                                                                    const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_decode_siho(const R* Y_N,
+                                                                                      int8_t* CWD,
+                                                                                      B* V_K,
+                                                                                      const size_t frame_id)
 {
     //	auto t_load = std::chrono::steady_clock::now(); // -----------------------------------------------------------
     // LOAD
@@ -122,12 +122,12 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siho(const R* Y_N
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siho_cw(const R* Y_N,
-                                                                       int8_t* CWD,
-                                                                       B* V_N,
-                                                                       const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_decode_siho_cw(const R* Y_N,
+                                                                                         int8_t* CWD,
+                                                                                         B* V_N,
+                                                                                         const size_t frame_id)
 {
     //	auto t_load = std::chrono::steady_clock::now(); // -----------------------------------------------------------
     // LOAD
@@ -153,9 +153,9 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_siho_cw(const R* 
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode(const size_t frame_id)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_decode(const size_t frame_id)
 {
     this->up_rule.begin_decoding(this->n_ite);
 
@@ -166,7 +166,7 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode(const size_t fram
         this->_decode_single_ite(this->var_nodes[frame_id], this->messages[frame_id]);
         this->up_rule.end_ite();
 
-        valid_synd = this->check_syndrome_soft(this->var_nodes[frame_id].data());
+        valid_synd = this->template check_syndrome_soft<R, Syndrome_checker>(this->var_nodes[frame_id].data());
         if (valid_synd) break;
     }
 
@@ -175,10 +175,10 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode(const size_t fram
     return !valid_synd && this->enable_syndrome;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_single_ite(std::vector<R>& var_nodes,
-                                                                          std::vector<R>& messages)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::_decode_single_ite(std::vector<R>& var_nodes,
+                                                                                            std::vector<R>& messages)
 {
     auto kr = 0;
     auto kw = 0;
@@ -206,9 +206,9 @@ Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::_decode_single_ite(std::v
     }
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule>::set_n_frames(const size_t n_frames)
+Decoder_LDPC_BP_horizontal_layered<B, R, Update_rule, Syndrome_checker>::set_n_frames(const size_t n_frames)
 {
     const auto old_n_frames = this->get_n_frames();
     if (old_n_frames != n_frames)

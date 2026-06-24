@@ -29,6 +29,7 @@ class Encoder_RS : public Encoder<B>
     const std::vector<int>& alpha_to; // log table of GF(2**m)
     const std::vector<int>& index_of; // antilog table of GF(2**m)
     const std::vector<int>& g;        // coefficients of the generator polynomial, g(x)
+    const std::vector<int>& mt;       // coefficients of the multiplication table in GF(2^m)
     std::vector<S> bb;                // coefficients of redundancy polynomial x^(length-k) i(x) modulo g(x)
     std::vector<S> packed_U_K;        // the source bits packed as GF(m) symbols
     std::vector<S> packed_X_N;        // the encoded bits packed as GF(m) symbols

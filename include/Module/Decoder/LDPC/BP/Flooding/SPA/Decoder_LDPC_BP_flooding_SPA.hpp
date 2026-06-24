@@ -10,13 +10,14 @@
 
 #include "Module/Decoder/LDPC/BP/Flooding/Decoder_LDPC_BP_flooding.hpp"
 #include "Tools/Algo/Matrix/Sparse_matrix/Sparse_matrix.hpp"
+#include "Tools/Code/LDPC/Syndrome/LDPC_syndrome.hpp"
 #include "Tools/Code/LDPC/Update_rule/SPA/Update_rule_SPA.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
-template<typename B = int, typename R = float>
+template<typename B = int, typename R = float, class Syndrome_checker = tools::LDPC_syndrome>
 class Decoder_LDPC_BP_flooding_SPA : public Decoder_LDPC_BP_flooding<B, R, tools::Update_rule_SPA<R>>
 {
   protected:
@@ -31,7 +32,7 @@ class Decoder_LDPC_BP_flooding_SPA : public Decoder_LDPC_BP_flooding<B, R, tools
                                  const bool enable_syndrome = true,
                                  const int syndrome_depth = 1);
     virtual ~Decoder_LDPC_BP_flooding_SPA() = default;
-    virtual Decoder_LDPC_BP_flooding_SPA<B, R>* clone() const;
+    virtual Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>* clone() const;
 
   protected:
     void _decode_single_ite(const std::vector<R>& msg_var_to_chk, std::vector<R>& msg_chk_to_var);

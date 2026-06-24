@@ -12,15 +12,16 @@ namespace aff3ct
 {
 namespace module
 {
-template<typename B, typename R, class Update_rule>
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::Decoder_LDPC_BP_flooding(const int K,
-                                                                      const int N,
-                                                                      const int n_ite,
-                                                                      const tools::Sparse_matrix& _H,
-                                                                      const std::vector<uint32_t>& info_bits_pos,
-                                                                      const Update_rule& up_rule,
-                                                                      const bool enable_syndrome,
-                                                                      const int syndrome_depth)
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::Decoder_LDPC_BP_flooding(
+  const int K,
+  const int N,
+  const int n_ite,
+  const tools::Sparse_matrix& _H,
+  const std::vector<uint32_t>& info_bits_pos,
+  const Update_rule& up_rule,
+  const bool enable_syndrome,
+  const int syndrome_depth)
   : Decoder_SISO<B, R>(K, N)
   , Decoder_LDPC_BP(K, N, n_ite, _H, enable_syndrome, syndrome_depth)
   , info_bits_pos(info_bits_pos)
@@ -72,25 +73,28 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::Decoder_LDPC_BP_flooding(const int 
     this->reset();
 }
 
-template<typename B, typename R, class Update_rule>
-Decoder_LDPC_BP_flooding<B, R, Update_rule>*
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::clone() const
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>*
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::clone() const
 {
     auto m = new Decoder_LDPC_BP_flooding(*this);
     m->deep_copy(*this);
     return m;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_reset(const size_t frame_id)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_reset(const size_t frame_id)
 {
     std::fill(this->msg_chk_to_var[frame_id].begin(), this->msg_chk_to_var[frame_id].end(), (R)0);
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siso(const R* Y_N1, int8_t* CWD, R* Y_N2, const size_t frame_id)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_decode_siso(const R* Y_N1,
+                                                                            int8_t* CWD,
+                                                                            R* Y_N2,
+                                                                            const size_t frame_id)
 {
     auto status = this->_decode(Y_N1, frame_id);
 
@@ -102,9 +106,12 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siso(const R* Y_N1, int8_t*
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siho(const R* Y_N, int8_t* CWD, B* V_K, const size_t frame_id)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_decode_siho(const R* Y_N,
+                                                                            int8_t* CWD,
+                                                                            B* V_K,
+                                                                            const size_t frame_id)
 {
     //	auto t_load = std::chrono::steady_clock::now(); // -----------------------------------------------------------
     // LOAD 	auto d_load = std::chrono::steady_clock::now() - t_load;
@@ -133,9 +140,12 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siho(const R* Y_N, int8_t* 
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siho_cw(const R* Y_N, int8_t* CWD, B* V_N, const size_t frame_id)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_decode_siho_cw(const R* Y_N,
+                                                                               int8_t* CWD,
+                                                                               B* V_N,
+                                                                               const size_t frame_id)
 {
     //	auto t_load = std::chrono::steady_clock::now(); // -----------------------------------------------------------
     // LOAD
@@ -161,9 +171,9 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_siho_cw(const R* Y_N, int8_
     return status;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 int
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode(const R* Y_N, const size_t frame_id)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_decode(const R* Y_N, const size_t frame_id)
 {
     this->up_rule.begin_decoding(this->n_ite);
 
@@ -179,7 +189,7 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode(const R* Y_N, const size_t 
         if (this->enable_syndrome && ite != this->n_ite - 1)
         {
             this->_compute_post(Y_N, this->msg_chk_to_var[frame_id], this->post);
-            valid_synd = this->check_syndrome_soft(this->post.data());
+            valid_synd = this->template check_syndrome_soft<R, Syndrome_checker>(this->post.data());
             if (valid_synd) break;
         }
     }
@@ -190,11 +200,12 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode(const R* Y_N, const size_t 
     return !valid_synd;
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_initialize_var_to_chk(const R* Y_N,
-                                                                    const std::vector<R>& msg_chk_to_var,
-                                                                    std::vector<R>& msg_var_to_chk)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_initialize_var_to_chk(
+  const R* Y_N,
+  const std::vector<R>& msg_chk_to_var,
+  std::vector<R>& msg_var_to_chk)
 {
     auto* msg_chk_to_var_ptr = msg_chk_to_var.data();
     auto* msg_var_to_chk_ptr = msg_var_to_chk.data();
@@ -218,10 +229,10 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_initialize_var_to_chk(const R* Y_N
     }
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_single_ite(const std::vector<R>& msg_var_to_chk,
-                                                                std::vector<R>& msg_chk_to_var)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_decode_single_ite(const std::vector<R>& msg_var_to_chk,
+                                                                                  std::vector<R>& msg_chk_to_var)
 {
     auto transpose_ptr = this->transpose.data();
 
@@ -245,11 +256,11 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_decode_single_ite(const std::vecto
     }
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::_compute_post(const R* Y_N,
-                                                           const std::vector<R>& msg_chk_to_var,
-                                                           std::vector<R>& post)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::_compute_post(const R* Y_N,
+                                                                             const std::vector<R>& msg_chk_to_var,
+                                                                             std::vector<R>& post)
 {
     // compute the a posteriori info
     const auto* msg_chk_to_var_ptr = msg_chk_to_var.data();
@@ -270,9 +281,9 @@ Decoder_LDPC_BP_flooding<B, R, Update_rule>::_compute_post(const R* Y_N,
     }
 }
 
-template<typename B, typename R, class Update_rule>
+template<typename B, typename R, class Update_rule, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding<B, R, Update_rule>::set_n_frames(const size_t n_frames)
+Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>::set_n_frames(const size_t n_frames)
 {
     const auto old_n_frames = this->get_n_frames();
     if (old_n_frames != n_frames)

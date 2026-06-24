@@ -12,15 +12,16 @@ namespace aff3ct
 {
 namespace module
 {
-template<typename B, typename R>
-Decoder_LDPC_BP_flooding_SPA<B, R>::Decoder_LDPC_BP_flooding_SPA(const int K,
-                                                                 const int N,
-                                                                 const int n_ite,
-                                                                 const tools::Sparse_matrix& _H,
-                                                                 const std::vector<uint32_t>& info_bits_pos,
-                                                                 const bool enable_syndrome,
-                                                                 const int syndrome_depth)
-  : Decoder_LDPC_BP_flooding<B, R, tools::Update_rule_SPA<R>>(
+template<typename B, typename R, class Syndrome_checker>
+Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>::Decoder_LDPC_BP_flooding_SPA(
+  const int K,
+  const int N,
+  const int n_ite,
+  const tools::Sparse_matrix& _H,
+  const std::vector<uint32_t>& info_bits_pos,
+  const bool enable_syndrome,
+  const int syndrome_depth)
+  : Decoder_LDPC_BP_flooding<B, R, tools::Update_rule_SPA<R>, Syndrome_checker>(
       K,
       N,
       n_ite,
@@ -37,19 +38,19 @@ Decoder_LDPC_BP_flooding_SPA<B, R>::Decoder_LDPC_BP_flooding_SPA(const int K,
         t->set_replicability(true);
 }
 
-template<typename B, typename R>
-Decoder_LDPC_BP_flooding_SPA<B, R>*
-Decoder_LDPC_BP_flooding_SPA<B, R>::clone() const
+template<typename B, typename R, class Syndrome_checker>
+Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>*
+Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>::clone() const
 {
     auto m = new Decoder_LDPC_BP_flooding_SPA(*this);
     m->deep_copy(*this);
     return m;
 }
 
-template<typename B, typename R>
+template<typename B, typename R, class Syndrome_checker>
 void
-Decoder_LDPC_BP_flooding_SPA<B, R>::_decode_single_ite(const std::vector<R>& msg_var_to_chk,
-                                                       std::vector<R>& msg_chk_to_var)
+Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>::_decode_single_ite(const std::vector<R>& msg_var_to_chk,
+                                                                         std::vector<R>& msg_chk_to_var)
 {
     const auto n_branches = (int)this->H.get_n_connections();
     auto transpose_ptr = this->transpose.data();

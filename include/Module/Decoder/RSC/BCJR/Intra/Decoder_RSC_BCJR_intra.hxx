@@ -69,7 +69,7 @@ Decoder_RSC_BCJR_intra<B, R>::Decoder_RSC_BCJR_intra(const int& K,
     req_trellis[6] = { 0, 4, 5, 1, 2, 6, 7, 3 };
     req_trellis[7] = { 0, 0, 1, 1, 1, 1, 0, 0 };
     req_trellis[8] = { 4, 0, 1, 5, 6, 2, 3, 7 };
-    req_trellis[9] = { 0, 0, 1, 1, 1, 1, 0, 0 };
+    req_trellis[9] = { 3, 3, 2, 2, 2, 2, 3, 3 };
 
     for (unsigned i = 0; i < req_trellis.size(); i++)
         if (trellis[i] != req_trellis[i])

@@ -11,13 +11,17 @@
 #include "Module/Decoder/Decoder_SISO.hpp"
 #include "Module/Decoder/LDPC/BP/Decoder_LDPC_BP.hpp"
 #include "Tools/Algo/Matrix/Sparse_matrix/Sparse_matrix.hpp"
+#include "Tools/Code/LDPC/Syndrome/LDPC_syndrome.hpp"
 #include "Tools/Code/LDPC/Update_rule/SPA/Update_rule_SPA.hpp"
 
 namespace aff3ct
 {
 namespace module
 {
-template<typename B = int, typename R = float, class Update_rule = tools::Update_rule_SPA<R>>
+template<typename B = int,
+         typename R = float,
+         class Update_rule = tools::Update_rule_SPA<R>,
+         class Syndrome_checker = tools::LDPC_syndrome>
 class Decoder_LDPC_BP_flooding
   : public Decoder_SISO<B, R>
   , public Decoder_LDPC_BP
@@ -43,7 +47,7 @@ class Decoder_LDPC_BP_flooding
                              const int syndrome_depth = 1);
     virtual ~Decoder_LDPC_BP_flooding() = default;
 
-    virtual Decoder_LDPC_BP_flooding<B, R, Update_rule>* clone() const;
+    virtual Decoder_LDPC_BP_flooding<B, R, Update_rule, Syndrome_checker>* clone() const;
 
     virtual void set_n_frames(const size_t n_frames);
 

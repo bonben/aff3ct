@@ -113,44 +113,38 @@ void
 Galois<I>::select_polynomial()
 {
     p[0] = p[m] = 1;
-    if (m == 2)
-        p[1] = 1;
-    else if (m == 3)
-        p[1] = 1;
-    else if (m == 4)
-        p[1] = 1;
-    else if (m == 5)
-        p[2] = 1;
-    else if (m == 6)
-        p[1] = 1;
-    else if (m == 7)
-        p[1] = 1;
-    else if (m == 8)
-        p[4] = p[5] = p[6] = 1;
-    else if (m == 9)
-        p[4] = 1;
-    else if (m == 10)
-        p[3] = 1;
-    else if (m == 11)
-        p[2] = 1;
-    else if (m == 12)
-        p[3] = p[4] = p[7] = 1;
-    else if (m == 13)
-        p[1] = p[3] = p[4] = 1;
-    else if (m == 14)
-        p[1] = p[11] = p[12] = 1;
-    else if (m == 15)
-        p[1] = 1;
-    else if (m == 16)
-        p[2] = p[3] = p[5] = 1;
-    else if (m == 17)
-        p[3] = 1;
-    else if (m == 18)
-        p[7] = 1;
-    else if (m == 19)
-        p[1] = p[5] = p[6] = 1;
-    else if (m == 20)
-        p[3] = 1;
+    static const std::array<std::vector<I>, 21> extra = []
+    {
+        std::array<std::vector<I>, 21> tbl{};
+        tbl[2] = { 1 };
+        tbl[3] = { 1 };
+        tbl[4] = { 1 };
+        tbl[5] = { 2 };
+        tbl[6] = { 1 };
+        tbl[7] = { 1 };
+        tbl[8] = { 4, 5, 6 };
+        tbl[9] = { 4 };
+        tbl[10] = { 3 };
+        tbl[11] = { 2 };
+        tbl[12] = { 3, 4, 7 };
+        tbl[13] = { 1, 3, 4 };
+        tbl[14] = { 1, 11, 12 };
+        tbl[15] = { 1 };
+        tbl[16] = { 2, 3, 5 };
+        tbl[17] = { 3 };
+        tbl[18] = { 7 };
+        tbl[19] = { 1, 5, 6 };
+        tbl[20] = { 3 };
+        return tbl;
+    }();
+
+    if (m >= 2 && m < static_cast<I>(extra.size()))
+    {
+        for (auto idx : extra[m])
+        {
+            p[idx] = 1;
+        }
+    }
 }
 
 template<typename I>
