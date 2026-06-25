@@ -6,6 +6,7 @@ on:
       - master
       - develop
       - ppa_upload
+      - github-actions-migration
 
 defaults:
   run:

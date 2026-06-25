@@ -49,7 +49,7 @@ then
 elif [ "$GIT_BRANCH" = "master" ]
 then
 	DPUT_HOST="ppa:aff3ct/aff3ct-stable"
-elif [ "$GIT_BRANCH" = "ppa_upload" ]
+elif [ "$GIT_BRANCH" = "ppa_upload" ] || [ "$GIT_BRANCH" = "github-actions-migration" ]
 then
 	DPUT_HOST="ppa:aff3ct/aff3ct-dev"
 else
