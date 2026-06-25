@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - ppa_upload
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-doc:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_doc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+      - name: Generate Documentation
+        run: |
+          export THREADS="4"
+          ./ci/analysis-documentation.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ppa-documentation
+          path: |
+            doc/build/html
+            doc/build/doxygen
+
+  deploy-ppa:
+    needs: build-doc
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_ppa
+    env:
+      DISTRIBS: "jammy;noble;resolute"
+      CXX: g++
+      THREADS: 4
+      NAME: build_deploy_upload_ppa
+      CI_AFF3CT_DEPLOY: "ON"
+      GIT_BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ppa-documentation
+          path: doc/build
+
+      - name: Import GPG Key
+        if: env.GPG_PRIVATE_KEY != ''
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import --pinentry-mode loopback --no-tty
+
+      - name: Deploy PPA
+        run: |
+          source ./ci/tools/git-branch.sh
+          ./ci/deploy/deploy-upload-ppa.sh
+
+  # ============================================================================
+  # PENDING TEAM DECISIONS & MISSING STEP 3 ARTIFACTS
+  # ============================================================================
+  #
+  # deploy-builds:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy Binaries to Rolling Pre-Release / CSV
+  #       run: echo "Pending team discussion on GitHub Releases vs public GitLab artifact URLs. See DEPLOYMENT_DECISIONS.md."
+  #
+  # deploy-sonarqube:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: SonarQube Scan
+  #       run: echo "Pending completion of Step 3 (Tests/Coverage)."
+  #
+  # pages:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy Coverage Pages
+  #       run: echo "Pending completion of Step 3 (Tests/Coverage)."

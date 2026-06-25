@@ -12,7 +12,7 @@ mkdir build
 mv doc/build doc/built
 cd build
 
-if [ -z "DISTRIBS" ]
+if [ -z "$DISTRIBS" ]
 then
 	echo "Please define the 'DISTRIBS' environment variable."
 	exit 1
