@@ -38,9 +38,9 @@ build-linux-gcc:
   parallel:
     matrix: 
       - COMPILER: gcc-x64-sse4.2
-        CFLAGS_SPE: -m64 -msse4.2
+        CFLAGS_SPE: -m64 -msse4.2 -faligned-new
         AFF3CT_PREC: MULTI
-        LFLAGS: -faligned-new -static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive
+        LFLAGS: -static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive
   variables:
     BUILD_DIR_EXPORT: true
   artifacts:
@@ -113,7 +113,7 @@ build-linux-gcc-coverage:
   extends: .build-linux-gcc
   image: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
   variables:
-    CFLAGS_SPE: -faligned-new -msse4.2 --coverage
+    CFLAGS_SPE: -msse4.2 --coverage -faligned-new
     LFLAGS: --coverage
     CMAKE_OPT: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0 -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_PREC=MULTI
   artifacts:
