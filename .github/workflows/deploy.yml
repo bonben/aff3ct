@@ -75,7 +75,13 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import --pinentry-mode loopback --no-tty
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --import --pinentry-mode loopback --no-tty
+            KEYID=$(gpg --list-secret-keys --keyid-format=long | awk '/^sec/ {print $2}' | cut -d'/' -f2 | head -n1)
+            echo "DEBSIGN_KEYID=\"$KEYID\"" > ~/.devscripts
+            echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-k$KEYID\"" >> ~/.devscripts
+            echo "Configured debuild to sign with key ID: $KEYID"
+          fi
 
       - name: Deploy PPA
         run: |
