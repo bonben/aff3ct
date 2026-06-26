@@ -6,7 +6,22 @@ on:
       - master
       - develop
       - github-actions-migration
+  pull_request:
+    branches:
+      - master
+      - develop
+  schedule:
+    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM UTC
   workflow_dispatch:
+    inputs:
+      test_profile:
+        description: 'Verification Depth'
+        required: true
+        default: 'fast'
+        type: choice
+        options:
+          - fast
+          - thorough
 
 defaults:
   run:
@@ -107,7 +122,12 @@ jobs:
           source ./ci/tools/threads.sh
           source ./ci/tools/git-version.sh
           export VAR_NAME="CI_AFF3CT_TEST_${CODE}_TIME_SEC"
-          export TIME_SEC="${!VAR_NAME:-600}"
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event.inputs.test_profile }}" == "thorough" ]]; then
+            BASE_TIMEOUT=600
+          else
+            BASE_TIMEOUT=30
+          fi
+          export TIME_SEC="${!VAR_NAME:-$BASE_TIMEOUT}"
           ./ci/test-regression.py --refs-path refs/${CODE} --results-path test-regression-results-${RESULT} --build-path build_linux_gcc-x64-sse4.2 --binary-path bin/aff3ct-$GIT_VERSION --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1 --n-threads $THREADS
 
       - uses: actions/upload-artifact@v4
