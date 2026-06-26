@@ -182,6 +182,25 @@ jobs:
     needs: build-coverage
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { CODE: BCH,        RESULT: bch }
+          - { CODE: CONV,       RESULT: conv }
+          - { CODE: LDPC,       RESULT: ldpc }
+          - { CODE: POLAR,      RESULT: polar }
+          - { CODE: POLAR_MK,   RESULT: polar-mk }
+          - { CODE: POLAR_PAC,  RESULT: polar-pac }
+          - { CODE: RA,         RESULT: ra }
+          - { CODE: REP,        RESULT: rep }
+          - { CODE: RS,         RESULT: rs }
+          - { CODE: RSC,        RESULT: rsc }
+          - { CODE: RSC_DB,     RESULT: rsc-db }
+          - { CODE: TURBO,      RESULT: turbo }
+          - { CODE: TURBO_DB,   RESULT: turbo-db }
+          - { CODE: TURBO_PROD, RESULT: turbo-prod }
+          - { CODE: UNCODED,    RESULT: uncoded }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -203,15 +222,16 @@ jobs:
           name: coverage-archive
           path: .
 
-      - name: Collect Coverage Tracking Data
+      - name: Collect Coverage Tracking Data (${{ matrix.CODE }})
         run: |
           tar -xvvf build.tar.gz
           source ./ci/tools/git-version.sh
-          ./ci/test-coverage-regression.sh
+          ./ci/test-coverage-regression.sh refs/${{ matrix.CODE }}
+          mv code_coverage_files/aff3ct_clean.info code_coverage_files/aff3ct_clean_${{ matrix.RESULT }}.info
 
       - uses: actions/upload-artifact@v4
         with:
-          name: code-coverage-files
+          name: code-coverage-files-${{ matrix.RESULT }}
           path: code_coverage_files
 
   report-coverage:
@@ -236,11 +256,17 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: code-coverage-files
+          pattern: code-coverage-files-*
           path: code_coverage_files
+          merge-multiple: true
 
       - name: Generate HTML & XML Coverage Reports
         run: |
+          LCOV_ARGS=()
+          for f in code_coverage_files/aff3ct_clean_*.info; do
+            LCOV_ARGS+=("-a" "$f")
+          done
+          lcov "${LCOV_ARGS[@]}" -o code_coverage_files/aff3ct_clean.info
           ./ci/coverage-linux.sh
 
       - uses: actions/upload-artifact@v4
