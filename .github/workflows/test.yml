@@ -126,7 +126,7 @@ jobs:
       CFLAGS: "-Wall -funroll-loops -msse4.2 --coverage"
       LFLAGS: "--coverage"
       CMAKE_OPT: "-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0 -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_PREC=MULTI"
-      NAME: build
+      NAME: build_coverage_install
     steps:
       - uses: actions/checkout@v4
         with:
