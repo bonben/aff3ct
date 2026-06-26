@@ -47,7 +47,6 @@ jobs:
     env:
       DISTRIBS: "jammy;noble;resolute"
       CXX: g++
-      THREADS: 4
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
       GIT_BRANCH: ${{ github.ref_name }}

@@ -28,7 +28,6 @@ jobs:
       LFLAGS: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
       CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
       NAME: build_linux_gcc-x64-sse4.2
-      THREADS: 4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,7 +77,6 @@ jobs:
           - { CODE: TURBO_PROD, RESULT: turbo-prod }
           - { CODE: UNCODED,    RESULT: uncoded }
     env:
-      THREADS: 4
       CODE: ${{ matrix.CODE }}
       RESULT: ${{ matrix.RESULT }}
     steps:
@@ -129,7 +127,6 @@ jobs:
       LFLAGS: "--coverage"
       CMAKE_OPT: "-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0 -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_PREC=MULTI"
       NAME: build
-      THREADS: 4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -162,8 +159,6 @@ jobs:
     needs: build-coverage
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
-    env:
-      THREADS: 4
     steps:
       - uses: actions/checkout@v4
         with:
