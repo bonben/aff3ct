@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Generate and check headers
         run: |
@@ -33,6 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Run cppcheck
         run: ./ci/analysis-cppcheck.sh
@@ -49,6 +51,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Run clang-format
         run: |
@@ -76,6 +79,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Update submodules with fallback
         run: |
@@ -102,6 +106,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Update submodules with fallback
         run: |
@@ -122,6 +127,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           submodules: false
       - name: Run documentation check
         run: |

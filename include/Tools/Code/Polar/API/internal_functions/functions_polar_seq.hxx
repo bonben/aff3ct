@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <limits>
-#include <limits>
 #include <streampu.hpp>
 
 #include "Tools/Code/Polar/API/internal_functions/functions_polar_seq.h"

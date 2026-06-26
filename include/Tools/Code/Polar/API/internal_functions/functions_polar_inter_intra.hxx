@@ -1,6 +1,5 @@
 #include <algorithm>
 
-
 #include "Tools/Code/Polar/API/internal_functions/functions_polar_inter_intra.h"
 
 namespace aff3ct
