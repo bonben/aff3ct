@@ -72,7 +72,6 @@ jobs:
           path: doc/build
 
       - name: Import GPG Key
-        if: env.GPG_PRIVATE_KEY != ''
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
