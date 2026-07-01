@@ -75,13 +75,13 @@ else
 	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
-apt-get update && apt-get install -y python3-paramiko
-
 cat <<EOF > ~/.dput.cf
 [ppa]
 fqdn = ppa.launchpad.net
-method = sftp
+method = ftp
+incoming = ~%(ppa)s/ubuntu/
 login = anonymous
+passive_ftp = 1
 allow_unsigned_uploads = 0
 EOF
 
