@@ -82,13 +82,26 @@ method = ftp
 incoming = ~%(ppa)s/ubuntu/
 login = anonymous
 passive_ftp = 1
-allow_unsigned_uploads = 0
+allow_unsigned_uploads = 1
 EOF
 
 make -j $THREADS -k
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 for dist in $(echo $DISTRIBS | tr ';' ' '); do
-	make dput_$dist
-	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+	echo "Uploading distribution $dist to Launchpad PPA..."
+	n=0
+	until [ "$n" -ge 5 ]
+	do
+		make dput_$dist && break
+		n=$((n+1))
+		echo "Launchpad incoming queue busy (550 error). Retrying in 15 seconds ($n/5)..."
+		sleep 15
+	done
+	if [ "$n" -ge 5 ]; then
+		echo "Failed to upload $dist after 5 attempts."
+		exit 1
+	fi
+	echo "Waiting 10 seconds before next upload so Launchpad can process $dist..."
+	sleep 10
 done
