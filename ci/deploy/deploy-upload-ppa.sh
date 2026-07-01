@@ -75,6 +75,8 @@ else
 	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
+apt-get update && apt-get install -y python3-paramiko
+
 cat <<EOF > ~/.dput.cf
 [ppa]
 fqdn = ppa.launchpad.net
