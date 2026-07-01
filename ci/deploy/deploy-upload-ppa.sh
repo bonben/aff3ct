@@ -75,5 +75,18 @@ else
 	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
+cat <<EOF > ~/.dput.cf
+[ppa]
+fqdn = ppa.launchpad.net
+method = sftp
+login = anonymous
+allow_unsigned_uploads = 0
+EOF
+
 make -j $THREADS -k
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+for dist in $(echo $DISTRIBS | tr ';' ' '); do
+	make dput_$dist
+	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+done
