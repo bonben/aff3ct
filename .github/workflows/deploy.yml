@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_ppa
     env:
-      DISTRIBS: "jammy;noble;resolute"
+      DISTRIBS: "noble"
       CXX: g++
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
