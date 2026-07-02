@@ -79,7 +79,6 @@ if command -v apt-get >/dev/null; then
 	apt-get update && apt-get install -y python3-paramiko openssh-client || true
 fi
 
-echo "Current user: $(whoami), HOME: $HOME"
 mkdir -p /etc/ssh /root/.ssh /github/home/.ssh ~/.ssh
 chmod 700 /root/.ssh /github/home/.ssh ~/.ssh 2>/dev/null || true
 
@@ -123,27 +122,6 @@ rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 for dist in $(echo $DISTRIBS | tr ';' ' '); do
 	echo "Uploading distribution $dist to Launchpad PPA via SFTP..."
-
-	# Debug: show SSH state visible to dput
-	echo "=== SSH Debug Info ==="
-	echo "whoami: $(whoami)"
-	echo "HOME: $HOME"
-	echo "id: $(id)"
-	echo "--- known_hosts files ---"
-	for f in /etc/ssh/ssh_known_hosts /root/.ssh/known_hosts /github/home/.ssh/known_hosts ~/.ssh/known_hosts; do
-		echo "$f: $(wc -l < "$f" 2>/dev/null || echo 'MISSING') lines"
-	done
-	echo "--- SSH key files ---"
-	for f in /root/.ssh/id_ed25519 /root/.ssh/id_rsa /github/home/.ssh/id_ed25519 ~/.ssh/id_ed25519 ~/.ssh/id_rsa; do
-		echo "$f: $(test -f "$f" && echo 'EXISTS' || echo 'MISSING')"
-	done
-	echo "--- dput.cf ---"
-	cat ~/.dput.cf 2>/dev/null || echo "~/.dput.cf MISSING"
-	echo "--- ssh config ---"
-	cat ~/.ssh/config 2>/dev/null || echo "~/.ssh/config MISSING"
-	echo "--- Testing SSH connection (verbose) ---"
-	ssh -vvv -o BatchMode=yes -o StrictHostKeyChecking=no team-aff3ct@ppa.launchpad.net echo "SSH OK" 2>&1 | head -80 || true
-	echo "=== End SSH Debug ==="
 
 	n=0
 	until [ "$n" -ge 5 ]
