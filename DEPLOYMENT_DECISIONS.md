@@ -76,6 +76,6 @@ Your team's PPAs are hosted under the `~aff3ct` Launchpad team:
 ---
 
 ## Summary Checklist for IT / Maintainers
-- [ ] Add `GPG_PRIVATE_KEY` repository secret to enable automated PPA uploading.
+- [X] Add `GPG_PRIVATE_KEY` repository secret to enable automated PPA uploading.
 - [ ] Align on Binary Distribution (Option A rolling pre-release vs external storage).
 - [ ] Provision IMT Atlantique self-hosted runner and attach to repo to unblock Step 3 (Tests) and Coverage.

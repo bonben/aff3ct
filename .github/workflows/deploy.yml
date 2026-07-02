@@ -84,21 +84,9 @@ jobs:
             echo "Configured debuild to sign with key ID: $KEYID"
           fi
 
-      - name: Setup Launchpad SSH Key
+      - name: Deploy PPA
         env:
           LAUNCHPAD_SSH_KEY: ${{ secrets.LAUNCHPAD_SSH_KEY }}
-        run: |
-          if [ -n "$LAUNCHPAD_SSH_KEY" ]; then
-            mkdir -p ~/.ssh
-            chmod 700 ~/.ssh
-            echo "$LAUNCHPAD_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519_launchpad
-            chmod 600 ~/.ssh/id_ed25519_launchpad
-            eval $(ssh-agent -s)
-            ssh-add ~/.ssh/id_ed25519_launchpad
-            echo -e "Host ppa.launchpad.net\n\tStrictHostKeyChecking no\n\tIdentityFile ~/.ssh/id_ed25519_launchpad" >> ~/.ssh/config
-          fi
-
-      - name: Deploy PPA
         run: |
           source ./ci/tools/git-branch.sh
           ./ci/deploy/deploy-upload-ppa.sh

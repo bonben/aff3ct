@@ -35,4 +35,6 @@ testing/
 run*.sh
 compile_commands.json
 
+notes.md
+ 
 __pycache__/

@@ -79,6 +79,27 @@ if command -v apt-get >/dev/null; then
 	apt-get update && apt-get install -y python3-paramiko openssh-client || true
 fi
 
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+ssh-keyscan -H ppa.launchpad.net >> ~/.ssh/known_hosts 2>/dev/null || true
+chmod 644 ~/.ssh/known_hosts
+
+if [ -n "$LAUNCHPAD_SSH_KEY" ]; then
+	echo "$LAUNCHPAD_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+	chmod 600 ~/.ssh/id_ed25519
+	cp ~/.ssh/id_ed25519 ~/.ssh/id_rsa
+	chmod 600 ~/.ssh/id_rsa
+fi
+
+cat <<EOF > ~/.ssh/config
+Host ppa.launchpad.net
+    StrictHostKeyChecking no
+    UserKnownHostsFile ~/.ssh/known_hosts
+    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_rsa
+EOF
+chmod 600 ~/.ssh/config
+
 cat <<EOF > ~/.dput.cf
 [ppa]
 fqdn = ppa.launchpad.net
