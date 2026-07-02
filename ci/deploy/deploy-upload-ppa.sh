@@ -81,7 +81,11 @@ fi
 
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-ssh-keyscan -H ppa.launchpad.net >> ~/.ssh/known_hosts 2>/dev/null || true
+
+cat <<EOF >> ~/.ssh/known_hosts
+ppa.launchpad.net ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA0aKz5UTUndYgIGG7dQBV+HaeuEZJ2xPHo2DS2iSKvUL4xNMSAY4UguNW+pX56nAQmZKIZZ8MaEvSj6zMEDiq6HFfn5JcTlM80UwlnyKe8B8p7Nk06PPQLrnmQt5fh0HmEcZx+JU9TZsfCHPnX7MNz4ELfZE6cFsclClrKim3BHUIGq//t93DllB+h4O9LHjEUsQ1Sr63irDLSutkLJD6RXchjROXkNirlcNVHH/jwLWR5RcYilNX7S5bIkK8NlWPjsn/8Ua5O7I9/YoE97PpO6i73DTGLh5H9JN/SITwCKBkgSDWUt61uPK3Y11Gty7o2lWsBjhBUm2Y38CBsoGmBw==
+EOF
+ssh-keyscan ppa.launchpad.net >> ~/.ssh/known_hosts 2>/dev/null || true
 chmod 644 ~/.ssh/known_hosts
 
 if [ -n "$LAUNCHPAD_SSH_KEY" ]; then
