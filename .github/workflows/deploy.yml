@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_ppa
     env:
-      DISTRIBS: "noble"
+      DISTRIBS: "jammy;noble;resolute"
       CXX: g++
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
@@ -82,6 +82,20 @@ jobs:
             echo "DEBSIGN_KEYID=\"$KEYID\"" > ~/.devscripts
             echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-k$KEYID\"" >> ~/.devscripts
             echo "Configured debuild to sign with key ID: $KEYID"
+          fi
+
+      - name: Setup Launchpad SSH Key
+        env:
+          LAUNCHPAD_SSH_KEY: ${{ secrets.LAUNCHPAD_SSH_KEY }}
+        run: |
+          if [ -n "$LAUNCHPAD_SSH_KEY" ]; then
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+            echo "$LAUNCHPAD_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519_launchpad
+            chmod 600 ~/.ssh/id_ed25519_launchpad
+            eval $(ssh-agent -s)
+            ssh-add ~/.ssh/id_ed25519_launchpad
+            echo -e "Host ppa.launchpad.net\n\tStrictHostKeyChecking no\n\tIdentityFile ~/.ssh/id_ed25519_launchpad" >> ~/.ssh/config
           fi
 
       - name: Deploy PPA

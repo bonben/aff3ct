@@ -75,13 +75,16 @@ else
 	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
+if command -v apt-get >/dev/null; then
+	apt-get update && apt-get install -y python3-paramiko openssh-client || true
+fi
+
 cat <<EOF > ~/.dput.cf
 [ppa]
 fqdn = ppa.launchpad.net
-method = ftp
+method = sftp
 incoming = ~%(ppa)s/ubuntu/
-login = anonymous
-passive_ftp = 1
+login = team-aff3ct
 allow_unsigned_uploads = 1
 EOF
 
@@ -89,19 +92,19 @@ make -j $THREADS -k
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 for dist in $(echo $DISTRIBS | tr ';' ' '); do
-	echo "Uploading distribution $dist to Launchpad PPA..."
+	echo "Uploading distribution $dist to Launchpad PPA via SFTP..."
 	n=0
 	until [ "$n" -ge 5 ]
 	do
 		make dput_$dist && break
 		n=$((n+1))
-		echo "Launchpad incoming queue busy (550 error). Retrying in 15 seconds ($n/5)..."
-		sleep 15
+		echo "Upload busy/locked. Retrying in 30 seconds ($n/5)..."
+		sleep 30
 	done
 	if [ "$n" -ge 5 ]; then
 		echo "Failed to upload $dist after 5 attempts."
 		exit 1
 	fi
-	echo "Waiting 10 seconds before next upload so Launchpad can process $dist..."
-	sleep 10
+	echo "Waiting 60 seconds before next upload so Launchpad can process $dist..."
+	sleep 60
 done
