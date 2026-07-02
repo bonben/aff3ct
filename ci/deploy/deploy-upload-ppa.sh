@@ -79,32 +79,37 @@ if command -v apt-get >/dev/null; then
 	apt-get update && apt-get install -y python3-paramiko openssh-client || true
 fi
 
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
+echo "Current user: $(whoami), HOME: $HOME"
+mkdir -p /etc/ssh /root/.ssh /github/home/.ssh ~/.ssh
+chmod 700 /root/.ssh /github/home/.ssh ~/.ssh 2>/dev/null || true
 
-cat <<EOF >> ~/.ssh/known_hosts
+cat <<EOF | tee -a /etc/ssh/ssh_known_hosts /root/.ssh/known_hosts /github/home/.ssh/known_hosts ~/.ssh/known_hosts > /dev/null
 ppa.launchpad.net ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA0aKz5UTUndYgIGG7dQBV+HaeuEZJ2xPHo2DS2iSKvUL4xNMSAY4UguNW+pX56nAQmZKIZZ8MaEvSj6zMEDiq6HFfn5JcTlM80UwlnyKe8B8p7Nk06PPQLrnmQt5fh0HmEcZx+JU9TZsfCHPnX7MNz4ELfZE6cFsclClrKim3BHUIGq//t93DllB+h4O9LHjEUsQ1Sr63irDLSutkLJD6RXchjROXkNirlcNVHH/jwLWR5RcYilNX7S5bIkK8NlWPjsn/8Ua5O7I9/YoE97PpO6i73DTGLh5H9JN/SITwCKBkgSDWUt61uPK3Y11Gty7o2lWsBjhBUm2Y38CBsoGmBw==
 EOF
-ssh-keyscan ppa.launchpad.net >> ~/.ssh/known_hosts 2>/dev/null || true
-chmod 644 ~/.ssh/known_hosts
+
+ssh-keyscan ppa.launchpad.net | tee -a /etc/ssh/ssh_known_hosts /root/.ssh/known_hosts /github/home/.ssh/known_hosts ~/.ssh/known_hosts > /dev/null 2>&1 || true
+chmod 644 /etc/ssh/ssh_known_hosts /root/.ssh/known_hosts /github/home/.ssh/known_hosts ~/.ssh/known_hosts 2>/dev/null || true
 
 if [ -n "$LAUNCHPAD_SSH_KEY" ]; then
-	echo "$LAUNCHPAD_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
-	chmod 600 ~/.ssh/id_ed25519
-	cp ~/.ssh/id_ed25519 ~/.ssh/id_rsa
-	chmod 600 ~/.ssh/id_rsa
+	echo "$LAUNCHPAD_SSH_KEY" | tr -d '\r' | tee /root/.ssh/id_ed25519 /github/home/.ssh/id_ed25519 ~/.ssh/id_ed25519 /root/.ssh/id_rsa /github/home/.ssh/id_rsa ~/.ssh/id_rsa > /dev/null
+	chmod 600 /root/.ssh/id_* /github/home/.ssh/id_* ~/.ssh/id_* 2>/dev/null || true
 fi
 
-cat <<EOF > ~/.ssh/config
+cat <<EOF | tee /etc/ssh/ssh_config /root/.ssh/config /github/home/.ssh/config ~/.ssh/config > /dev/null
 Host ppa.launchpad.net
     StrictHostKeyChecking no
+    GlobalKnownHostsFile /etc/ssh/ssh_known_hosts
     UserKnownHostsFile ~/.ssh/known_hosts
     IdentityFile ~/.ssh/id_ed25519
     IdentityFile ~/.ssh/id_rsa
+    IdentityFile /root/.ssh/id_ed25519
+    IdentityFile /root/.ssh/id_rsa
+    IdentityFile /github/home/.ssh/id_ed25519
+    IdentityFile /github/home/.ssh/id_rsa
 EOF
-chmod 600 ~/.ssh/config
+chmod 600 /root/.ssh/config /github/home/.ssh/config ~/.ssh/config 2>/dev/null || true
 
-cat <<EOF > ~/.dput.cf
+cat <<EOF | tee /etc/dput.cf /root/.dput.cf /github/home/.dput.cf ~/.dput.cf > /dev/null
 [ppa]
 fqdn = ppa.launchpad.net
 method = sftp
