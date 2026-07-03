@@ -19,6 +19,7 @@ Update_rule_SPA<R>::Update_rule_SPA(const unsigned max_chk_node_degree)
   , values(max_chk_node_degree)
   , sign(0)
   , product(1)
+  , n_zeros(0)
   , n_ite(0)
   , ite(0)
 {
@@ -66,6 +67,7 @@ Update_rule_SPA<R>::begin_chk_node_in(const int /*chk_id*/, const int chk_degree
 
     this->sign = 0;
     this->product = 1;
+    this->n_zeros = 0;
 }
 
 template<typename R>
@@ -75,9 +77,11 @@ Update_rule_SPA<R>::compute_chk_node_in(const int var_id, const R var_val)
     const auto var_abs = (R)std::abs(var_val);
     const auto res = (R)std::tanh(var_abs * (R)0.5);
     const auto var_sign = std::signbit((float)var_val) ? -1 : 0;
+    const bool is_zero_val = res == (R)0;
 
-    this->sign ^= var_sign;
-    this->product *= res;
+    this->sign ^= is_zero_val ? 0 : var_sign;
+    this->product *= is_zero_val ? (R)1 : res;
+    this->n_zeros = (res == (R)0) ? this->n_zeros + 1 : this->n_zeros;
     this->values[var_id] = res;
 }
 
@@ -97,12 +101,16 @@ template<typename R>
 inline R
 Update_rule_SPA<R>::compute_chk_node_out(const int var_id, const R var_val)
 {
-    auto res_tmp = this->product / this->values[var_id];
+    const bool is_zero_val = this->values[var_id] == (R)0;
+
+    auto res_tmp = is_zero_val ? this->product : this->product / this->values[var_id];
     res_tmp = (res_tmp < (R)1.0) ? res_tmp : (R)1.0 - std::numeric_limits<R>::epsilon();
     const auto res_abs = (R)2.0 * std::atanh(res_tmp);
-    const auto res_sng = this->sign ^ (std::signbit((float)var_val) ? -1 : 0);
+    const auto res_sng = is_zero_val ? this->sign : this->sign ^ (std::signbit((float)var_val) ? -1 : 0);
 
-    return (R)std::copysign(res_abs, res_sng);
+    return (this->n_zeros == 0 || (this->n_zeros == 1 && this->values[var_id] == (R)0))
+             ? (R)std::copysign(res_abs, res_sng)
+             : 0;
 }
 
 template<typename R>

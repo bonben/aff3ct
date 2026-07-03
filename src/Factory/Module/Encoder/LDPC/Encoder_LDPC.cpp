@@ -1,4 +1,6 @@
+#include <regex>
 #include <streampu.hpp>
+#include <string>
 #include <utility>
 
 #include "Factory/Module/Encoder/LDPC/Encoder_LDPC.hpp"
@@ -7,7 +9,9 @@
 #include "Module/Encoder/LDPC/From_H/Encoder_LDPC_from_H.hpp"
 #include "Module/Encoder/LDPC/From_IRA/Encoder_LDPC_from_IRA.hpp"
 #include "Module/Encoder/LDPC/From_QC/Encoder_LDPC_from_QC.hpp"
+#include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC_fast.hpp"
 #include "Tools/Code/LDPC/Matrix_handler/LDPC_matrix_handler.hpp"
+#include "Tools/Code/LDPC/Standard/5G/5G_base_graph.hpp"
 #include "Tools/Display/rang_format/rang_format.h"
 #include "Tools/Documentation/documentation.h"
 
@@ -37,7 +41,7 @@ Encoder_LDPC ::get_description(cli::Argument_map_info& args) const
     auto p = this->get_prefix();
     const std::string class_name = "factory::Encoder_LDPC::";
 
-    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA");
+    cli::add_options(args.at({ p + "-type" }), 0, "LDPC", "LDPC_H", "LDPC_DVBS2", "LDPC_QC", "LDPC_IRA", "LDPC_5G");
 
     tools::add_arg(args, p, class_name + "p+h-path", cli::File(cli::openmode::read));
 
@@ -89,7 +93,31 @@ Encoder_LDPC ::get_headers(std::map<std::string, tools::header_list>& headers, c
 
     auto p = this->get_prefix();
 
-    if (this->type == "LDPC") headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    if (this->type == "LDPC")
+    {
+        headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+    }
+
+    if (this->type == "LDPC_5G")
+    {
+        auto base_graph = tools::build_5G_base_graph(this->K, this->N);
+        headers[p].push_back(std::make_pair("Base graph", "BG" + std::to_string(base_graph.Bg)));
+        headers[p].push_back(std::make_pair("Index list", std::to_string(base_graph.index_list)));
+        headers[p].push_back(std::make_pair("Zc", std::to_string(base_graph.Zc)));
+        headers[p].push_back(std::make_pair("K LDPC", std::to_string(base_graph.K_LDPC)));
+        headers[p].push_back(std::make_pair("N LDPC", std::to_string(base_graph.N_LDPC)));
+
+        if (this->G_path.empty())
+        {
+            std::string G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
+                                 std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+            headers[p].push_back(std::make_pair("G matrix path", cli::modify_path<cli::Is_file>(G_path)));
+        }
+        else
+        {
+            headers[p].push_back(std::make_pair("G matrix path", this->G_path));
+        }
+    }
 
     if (this->type == "LDPC_H" || this->type == "LDPC_QC")
     {
@@ -113,6 +141,19 @@ Encoder_LDPC ::build(const tools::Sparse_matrix& G, const tools::Sparse_matrix& 
         return new module::Encoder_LDPC_from_H<B>(this->K, this->N_cw, H, this->G_method, this->G_save_path, true);
     if (this->type == "LDPC_QC") return new module::Encoder_LDPC_from_QC<B>(this->K, this->N_cw, H);
     if (this->type == "LDPC_IRA") return new module::Encoder_LDPC_from_IRA<B>(this->K, this->N_cw, H);
+    if (this->type == "LDPC_5G")
+    {
+        auto base_graph = tools::build_5G_base_graph(this->K, this->N);
+        std::string G_path = this->G_path;
+        if (G_path.empty())
+        {
+            G_path = "conf/enc/LDPC/5G/NR_" + std::to_string(base_graph.Bg) + "_" +
+                     std::to_string(base_graph.index_list) + "_" + std::to_string(base_graph.Zc) + ".txt";
+            G_path = cli::modify_path<cli::Is_file>(G_path);
+        }
+        return new module::Encoder_LDPC_QC_fast<B>(
+          this->K, base_graph.N_LDPC, base_graph.Zc, G_path.c_str(), base_graph.K_LDPC);
+    }
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }

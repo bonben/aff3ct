@@ -13,6 +13,7 @@ template<typename R>
 Update_rule_SPA_simd<R>::Update_rule_SPA_simd(const unsigned max_chk_node_degree)
   : name("SPA")
   , false_msk(false)
+  , zero((R)0)
   , one((R)1)
   , half((R)0.5)
   , two((R)2)
@@ -20,6 +21,9 @@ Update_rule_SPA_simd<R>::Update_rule_SPA_simd(const unsigned max_chk_node_degree
   , values(max_chk_node_degree)
   , sign(false)
   , product(one)
+  , one_zero(false)
+  , two_or_more_zeros(false)
+  , no_zero(true)
   , n_ite(0)
   , ite(0)
 {
@@ -67,6 +71,9 @@ Update_rule_SPA_simd<R>::begin_chk_node_in(const int chk_id, const int chk_degre
 
     this->sign = this->false_msk;
     this->product = this->one;
+
+    this->one_zero = this->false_msk;
+    this->two_or_more_zeros = this->false_msk;
 }
 
 template<typename R>
@@ -76,9 +83,12 @@ Update_rule_SPA_simd<R>::compute_chk_node_in(const int var_id, const mipp::Reg<R
     const auto var_abs = mipp::abs(var_val);
     const auto res = mipp::tanh(var_abs * this->half);
     const auto var_sign = mipp::sign(var_val);
+    auto is_zero_val = res == this->zero;
 
-    this->sign ^= var_sign;
-    this->product *= res;
+    this->sign = ((this->sign ^ var_sign) & (~is_zero_val)) | (this->sign & is_zero_val);
+    this->product = mipp::blend(this->product, this->product * res, is_zero_val);
+    this->two_or_more_zeros = this->two_or_more_zeros | (this->one_zero & is_zero_val);
+    this->one_zero = ~this->two_or_more_zeros & (this->one_zero | is_zero_val);
     this->values[var_id] = res;
 }
 
@@ -86,6 +96,7 @@ template<typename R>
 inline void
 Update_rule_SPA_simd<R>::end_chk_node_in()
 {
+    this->no_zero = ~(this->one_zero | this->two_or_more_zeros);
 }
 
 template<typename R>
@@ -98,12 +109,14 @@ template<typename R>
 inline mipp::Reg<R>
 Update_rule_SPA_simd<R>::compute_chk_node_out(const int var_id, const mipp::Reg<R> var_val)
 {
-    auto res_tmp = this->product / this->values[var_id];
+    auto is_zero_val = this->values[var_id] == this->zero;
+
+    auto res_tmp = mipp::blend(this->product, this->product / this->values[var_id], is_zero_val);
     res_tmp = mipp::blend(res_tmp, this->epsilon1m, res_tmp < this->one);
     const auto res_abs = this->two * mipp::atanh(res_tmp);
-    const auto res_sng = this->sign ^ mipp::sign(var_val);
+    const auto res_sng = ((this->sign ^ mipp::sign(var_val)) & (~is_zero_val)) | (this->sign & is_zero_val);
 
-    return mipp::copysign(res_abs, res_sng);
+    return mipp::blend(mipp::copysign(res_abs, res_sng), zero, (this->no_zero | (this->one_zero & is_zero_val)));
 }
 
 template<typename R>
