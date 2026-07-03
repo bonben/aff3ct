@@ -64,6 +64,10 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    add_compile_options(-faligned-new)
+endif()
+
 # Specify bin and lib paths
 set(EXECUTABLE_OUTPUT_PATH bin/)
 set(LIBRARY_OUTPUT_PATH lib/)
