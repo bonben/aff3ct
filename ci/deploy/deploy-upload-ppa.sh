@@ -135,6 +135,4 @@ for dist in $(echo $DISTRIBS | tr ';' ' '); do
 		echo "Failed to upload $dist after 5 attempts."
 		exit 1
 	fi
-	echo "Waiting 60 seconds before next upload so Launchpad can process $dist..."
-	sleep 60
 done
