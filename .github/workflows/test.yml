@@ -38,7 +38,7 @@ jobs:
       COMPILER: gcc-x64-sse4.2
       CC: gcc
       CXX: g++
-      CFLAGS: "-Wall -funroll-loops -m64 -msse4.2"
+      CFLAGS: "-Wall -funroll-loops -m64 -msse4.2 -faligned-new"
       AFF3CT_PREC: MULTI
       LFLAGS: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
       CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
@@ -145,7 +145,7 @@ jobs:
     env:
       CC: gcc
       CXX: g++
-      CFLAGS: "-Wall -funroll-loops -msse4.2 --coverage"
+      CFLAGS: "-Wall -funroll-loops -msse4.2 -faligned-new --coverage"
       LFLAGS: "--coverage"
       CMAKE_OPT: "-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0 -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_PREC=MULTI"
       NAME: build_coverage_install
