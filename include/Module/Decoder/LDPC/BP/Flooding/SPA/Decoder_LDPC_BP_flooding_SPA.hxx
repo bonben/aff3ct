@@ -77,17 +77,42 @@ Decoder_LDPC_BP_flooding_SPA<B, R, Syndrome_checker>::_decode_single_ite(const s
         const auto chk_degree = (int)this->H.get_col_to_rows()[c].size();
 
         auto prod = (R)1;
+        size_t var_zero_id = 0;
+        size_t n_zeros = 0;
         for (auto v = 0; v < chk_degree; v++)
         {
-            this->values[v] = msg_chk_to_var[transpose_ptr[v]];
-            prod *= this->values[v];
+            auto trans_v = transpose_ptr[v];
+            auto msg = msg_chk_to_var[trans_v];
+            const bool is_zero_val = msg == (R)0;
+
+            this->values[v] = msg;
+            prod *= is_zero_val ? 1 : msg;
+            n_zeros += is_zero_val ? 1 : 0;
+            var_zero_id = is_zero_val ? trans_v : var_zero_id;
         }
 
-        for (auto v = 0; v < chk_degree; v++)
+        if (n_zeros == 0)
         {
-            auto val = prod / this->values[v];
-            val = (std::abs(val) < (R)1.0) ? val : ((R)1.0 - std::numeric_limits<R>::epsilon()) * (val > 0 ? 1 : -1);
-            msg_chk_to_var[transpose_ptr[v]] = (R)val;
+            for (auto v = 0; v < chk_degree; v++)
+            {
+                auto val = prod / this->values[v];
+                val =
+                  (std::abs(val) < (R)1.0) ? val : ((R)1.0 - std::numeric_limits<R>::epsilon()) * (val > 0 ? 1 : -1);
+                msg_chk_to_var[transpose_ptr[v]] = (R)val;
+            }
+        }
+        else
+        {
+            for (auto v = 0; v < chk_degree; v++)
+                msg_chk_to_var[transpose_ptr[v]] = (R)0;
+
+            if (n_zeros == 1)
+            {
+                auto val = prod;
+                val =
+                  (std::abs(val) < (R)1.0) ? val : ((R)1.0 - std::numeric_limits<R>::epsilon()) * (val > 0 ? 1 : -1);
+                msg_chk_to_var[var_zero_id] = (R)val;
+            }
         }
 
         transpose_ptr += chk_degree;

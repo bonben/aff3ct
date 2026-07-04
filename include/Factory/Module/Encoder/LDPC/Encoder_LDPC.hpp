@@ -25,6 +25,8 @@ class Encoder_LDPC : public Encoder
 {
   public:
     // ----------------------------------------------------------------------------------------------------- PARAMETERS
+    int N;
+
     // matrices
     std::string H_path = "";
     std::string G_path = "";
@@ -35,6 +37,8 @@ class Encoder_LDPC : public Encoder
     // G generator method
     std::string G_method = "IDENTITY";
     std::string G_save_path = "";
+
+    std::string standard = "";
 
     // -------------------------------------------------------------------------------------------------------- METHODS
     explicit Encoder_LDPC(const std::string& p = Encoder_LDPC_prefix);

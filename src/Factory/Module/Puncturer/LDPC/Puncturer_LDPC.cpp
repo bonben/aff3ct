@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Factory/Module/Puncturer/LDPC/Puncturer_LDPC.hpp"
+#include "Module/Puncturer/LDPC/Puncturer_5G.hpp"
 #include "Module/Puncturer/LDPC/Puncturer_LDPC.hpp"
 #include "Module/Puncturer/NO/Puncturer_NO.hpp"
 #include "Tools/Documentation/documentation.h"
@@ -18,7 +19,7 @@ const std::string aff3ct::factory::Puncturer_LDPC_prefix = "pct";
 Puncturer_LDPC ::Puncturer_LDPC(const std::string& prefix)
   : Puncturer(Puncturer_LDPC_name, prefix)
 {
-    this->type = "LDPC";
+    this->type = "LDPC_5G";
 }
 
 Puncturer_LDPC*
@@ -110,6 +111,7 @@ module::Puncturer<B, Q>*
 Puncturer_LDPC ::build() const
 {
     if (this->type == "LDPC") return new module::Puncturer_LDPC<B, Q>(this->K, this->N, this->N_cw, this->pattern);
+    if (this->type == "LDPC_5G") return new module::Puncturer_5G<B, Q>(this->K, this->N, this->N_cw, this->pattern);
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
