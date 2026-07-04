@@ -20,6 +20,7 @@ class Update_rule_SPA // Sum Product Algorithm
     std::vector<R> values;
     int sign;
     R product;
+    size_t n_zeros;
     int n_ite;
     int ite;
 
