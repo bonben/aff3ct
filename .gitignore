@@ -18,6 +18,10 @@ CMakeSettings.json
 .scannerwork/
 build*/
 Debug*/
+Release*/
+CMakeFiles/
+bin/
+log/
 cmake-build*/
 cppcheck/
 src/Tools/version.cpp
@@ -34,5 +38,7 @@ scripts/abi/db_summary.txt
 testing/
 run*.sh
 compile_commands.json
+CMakeCache.txt
+tasks.py
 
 __pycache__/
