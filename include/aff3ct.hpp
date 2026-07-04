@@ -45,6 +45,9 @@
 #ifndef FACTORY_DECODER_POLAR_PAC_HPP
 #include <Factory/Module/Decoder/Polar_PAC/Decoder_polar_PAC.hpp>
 #endif
+#ifndef FACTORY_DECODER_POLAR_PT_HPP
+#include <Factory/Module/Decoder/Polar_PT/Decoder_polar_PT.hpp>
+#endif
 #ifndef FACTORY_DECODER_RA_HPP
 #include <Factory/Module/Decoder/RA/Decoder_RA.hpp>
 #endif
@@ -92,6 +95,9 @@
 #endif
 #ifndef FACTORY_ENCODER_POLAR_PAC_HPP
 #include <Factory/Module/Encoder/Polar_PAC/Encoder_polar_PAC.hpp>
+#endif
+#ifndef FACTORY_ENCODER_POLAR_PT
+#include <Factory/Module/Encoder/Polar_PT/Encoder_polar_PT.hpp>
 #endif
 #ifndef FACTORY_ENCODER_RA_HPP
 #include <Factory/Module/Encoder/RA/Encoder_RA.hpp>
@@ -189,6 +195,9 @@
 #ifndef FACTORY_CODEC_POLAR_PAC_HPP
 #include <Factory/Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp>
 #endif
+#ifndef FACTORY_CODEC_POLAR_PT_HPP
+#include <Factory/Tools/Codec/Polar_PT/Codec_polar_PT.hpp>
+#endif
 #ifndef FACTORY_CODEC_RA_HPP
 #include <Factory/Tools/Codec/RA/Codec_RA.hpp>
 #endif
@@ -224,6 +233,9 @@
 #endif
 #ifndef FACTORY_POLAR_CODE_HPP
 #include <Factory/Tools/Code/Polar_MK/Polar_code.hpp>
+#endif
+#ifndef FACTORY_PRETRANSFORM_GENERATOR_HPP
+#include <Factory/Tools/Code/Polar_PT/Pretransform_generator.hpp>
 #endif
 #ifndef FACTORY_FLIP_AND_CHECK_DB_HPP
 #include <Factory/Tools/Code/Turbo/Flip_and_check_DB.hpp>
@@ -429,8 +441,14 @@
 #ifndef DECODER_POLAR_MK_SCL_NAIVE_SYS
 #include <Module/Decoder/Polar_MK/SCL/Decoder_polar_MK_SCL_naive_sys.hpp>
 #endif
+#ifndef DECODER_POLAR_PAC_FANO_NAIVE
+#include <Module/Decoder/Polar_PAC/Fano/Decoder_polar_PAC_Fano_naive.hpp>
+#endif
 #ifndef DECODER_POLAR_PAC_SCL_NAIVE
 #include <Module/Decoder/Polar_PAC/SCL/Decoder_polar_PAC_SCL_naive.hpp>
+#endif
+#ifndef DECODER_POLAR_PT_SCL_NAIVE
+#include <Module/Decoder/Polar_PT/SCL/Decoder_polar_PT_SCL_naive.hpp>
 #endif
 #ifndef DECODER_POLAR_SCAN_NAIVE_H_
 #include <Module/Decoder/Polar/SCAN/Decoder_polar_SCAN_naive.hpp>
@@ -644,6 +662,9 @@
 #endif
 #ifndef ENCODER_POLAR_PAC_HPP_
 #include <Module/Encoder/Polar_PAC/Encoder_polar_PAC.hpp>
+#endif
+#ifndef ENCODER_POLAR_PT_HPP_
+#include <Module/Encoder/Polar_PT/Encoder_polar_PT.hpp>
 #endif
 #ifndef ENCODER_RA_HPP_
 #include <Module/Encoder/RA/Encoder_RA.hpp>
@@ -942,6 +963,9 @@
 #ifndef CODEC_POLAR_PAC_HPP_
 #include <Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp>
 #endif
+#ifndef CODEC_POLAR_PT_HPP_
+#include <Tools/Codec/Polar_PT/Codec_polar_PT.hpp>
+#endif
 #ifndef CODEC_RA_HPP_
 #include <Tools/Codec/RA/Codec_RA.hpp>
 #endif
@@ -1122,6 +1146,12 @@
 #ifndef POLAR_CODE_HPP_
 #include <Tools/Code/Polar/Polar_code.hpp>
 #endif
+#ifndef PRETRANSFORM_GENERATOR_FILE_HPP_
+#include <Tools/Code/Polar/Pretransform_generator/Pretransform_generator_file.hpp>
+#endif
+#ifndef PRETRANSFORM_GENERATOR_HPP_
+#include <Tools/Code/Polar/Pretransform_generator/Pretransform_generator.hpp>
+#endif
 #ifndef RS_POLYNOMIAL_GENERATOR_HPP
 #include <Tools/Code/RS/RS_polynomial_generator.hpp>
 #endif
@@ -1203,11 +1233,17 @@
 #ifndef GENERAL_UTILS_H_
 #include <Tools/general_utils.h>
 #endif
+#ifndef Interface_get_set_dynamic_frozen_bits_HPP__
+#include <Tools/Interface/Interface_get_set_dynamic_frozen_bits.hpp>
+#endif
 #ifndef Interface_get_set_frozen_bits_HPP__
 #include <Tools/Interface/Interface_get_set_frozen_bits.hpp>
 #endif
 #ifndef INTERFACE_GET_SET_NOISE_HPP__
 #include <Tools/Interface/Interface_get_set_noise.hpp>
+#endif
+#ifndef Interface_get_set_pretransform_HPP__
+#include <Tools/Interface/Interface_get_set_pretransform.hpp>
 #endif
 #ifndef Interface_get_trellis_HPP__
 #include <Tools/Interface/Interface_get_trellis.hpp>
