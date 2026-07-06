@@ -151,10 +151,25 @@ jobs:
 
   build-deploy-windows:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc-x86-sse4.2
+            msystem: MINGW32
+            cflags_spe: "-m32 -msse4.2 -faligned-new"
+            package: "mingw-w64-i686-gcc mingw-w64-i686-cmake make"
+          - compiler: gcc-x64-avx2
+            msystem: MINGW64
+            cflags_spe: "-m64 -mavx2 -mfma -faligned-new"
+            package: "mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make"
     env:
-      CFLAGS: "-D_CRT_SECURE_NO_DEPRECATE /MT /EHsc /arch:AVX"
+      CC: gcc
+      CXX: g++
+      CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
+      LFLAGS: "-static -static-libgcc -static-libstdc++"
       CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF -DSPU_STACKTRACE=OFF"
-      NAME: build_windows_msvc-avx
+      NAME: build_windows_${{ matrix.compiler }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -172,22 +187,26 @@ jobs:
             git submodule update --init --recursive
           fi
 
-      - name: Install vcpkg dependencies
-        shell: pwsh
-        run: |
-          vcpkg install getopt-win32:x64-windows
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: ${{ matrix.package }}
 
-      - name: Build
+      - name: Build Windows GCC
+        shell: msys2 {0}
         run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_CXX_FLAGS="${CFLAGS} /MP" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" ${CMAKE_OPT} -DCMAKE_INSTALL_PREFIX="${NAME}"
-          cmake --build . --config Release --parallel ${NUMBER_OF_PROCESSORS}
+          source ./ci/tools/threads.sh
+          mkdir build && cd build
+          cmake .. -G"Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release ${CMAKE_OPT} -DCMAKE_CXX_FLAGS="${CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="${LFLAGS}" -DCMAKE_INSTALL_PREFIX="../${NAME}"
+          make -j ${THREADS}
+          make install
 
       - uses: actions/upload-artifact@v4
         with:
-          name: deploy-windows-msvc-avx
-          path: build
+          name: deploy-windows-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
 
   build-deploy-macos:
     runs-on: macos-latest
