@@ -29,9 +29,37 @@ defaults:
 
 jobs:
   # ============================================================================
+  # SCHEDULE GATE (skip the weekly thorough run if develop hasn't changed)
+  # ============================================================================
+  check-schedule:
+    if: github.event_name == 'schedule'
+    runs-on: [self-hosted, imt-atlantique]
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        name: Check for commits in the last 7 days
+        run: |
+          if [ -n "$(git log --since='7 days ago' --oneline)" ]; then
+            echo "Changes found in the last 7 days, running thorough suite."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes in the last 7 days, skipping thorough suite."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ============================================================================
   # REGRESSION TESTS
   # ============================================================================
   build-regression:
+    needs: check-schedule
+    if: |
+      always() &&
+      (needs.check-schedule.result == 'skipped' || needs.check-schedule.outputs.should_run == 'true')
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
     env:
@@ -140,6 +168,10 @@ jobs:
   # CODE COVERAGE
   # ============================================================================
   build-coverage:
+    needs: check-schedule
+    if: |
+      always() &&
+      (needs.check-schedule.result == 'skipped' || needs.check-schedule.outputs.should_run == 'true')
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
     env:
