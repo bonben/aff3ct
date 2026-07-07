@@ -99,6 +99,7 @@ jobs:
 
   test-regression:
     needs: build-regression
+    if: always() && needs.build-regression.result == 'success'
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_python:v3.8.5
     strategy:
@@ -212,6 +213,7 @@ jobs:
 
   test-coverage:
     needs: build-coverage
+    if: always() && needs.build-coverage.result == 'success'
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
     strategy:
@@ -268,6 +270,7 @@ jobs:
 
   report-coverage:
     needs: test-coverage
+    if: always() && needs.test-coverage.result == 'success'
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
     steps:
