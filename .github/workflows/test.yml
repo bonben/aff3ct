@@ -2,14 +2,10 @@ name: Regression & Coverage Suite
 
 on:
   push:
-    branches:
-      - master
-      - develop
-      - github-actions-migration
   pull_request:
-    branches:
-      - master
-      - develop
+  # Schedule always runs against the repo's default branch (develop on
+  # aff3ct/aff3ct) regardless of any branch filter, so this is effectively
+  # develop-only.
   schedule:
     - cron: '0 2 * * 0' # Every Sunday at 2:00 AM UTC
   workflow_dispatch:
@@ -169,10 +165,9 @@ jobs:
   # CODE COVERAGE
   # ============================================================================
   build-coverage:
-    needs: check-schedule
-    if: |
-      always() &&
-      (needs.check-schedule.result == 'skipped' || needs.check-schedule.outputs.should_run == 'true')
+    # Coverage is a push/PR-only concern; the weekly schedule run is
+    # regression-only (in thorough mode), so skip coverage entirely here.
+    if: github.event_name != 'schedule'
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
     env:
