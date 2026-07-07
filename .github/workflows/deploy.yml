@@ -59,6 +59,9 @@ jobs:
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
       GIT_BRANCH: ${{ github.ref_name }}
+      # Only real tags (v*) upload to Launchpad; branch pushes just build
+      # the Debian source packages to catch packaging breakage early.
+      PPA_DRY_RUN: ${{ github.ref_type == 'tag' && 'OFF' || 'ON' }}
     steps:
       - uses: actions/checkout@v4
         with:

@@ -25,12 +25,6 @@ then
 	exit 1
 fi
 
-if [ -z "$GIT_BRANCH" ]
-then
-	echo "Please define the 'GIT_BRANCH' environment variable."
-	exit 1
-fi
-
 if [ -z "$THREADS" ]
 then
 	echo "The 'THREADS' environment variable is not set, default value = 1."
@@ -43,19 +37,13 @@ then
 	NAME="build_deploy_upload_ppa"
 fi
 
-if [ "$GIT_BRANCH" = "develop" ]
+if [ -z "$PPA_DRY_RUN" ]
 then
-	DPUT_HOST="ppa:aff3ct/aff3ct-dev"
-elif [ "$GIT_BRANCH" = "master" ]
-then
-	DPUT_HOST="ppa:aff3ct/aff3ct-stable"
-elif [ "$GIT_BRANCH" = "ppa_upload" ] || [ "$GIT_BRANCH" = "github-actions-migration" ]
-then
-	DPUT_HOST="ppa:aff3ct/aff3ct-dev"
-else
-	echo "Deploy upload ppa must be run only on master or develop branch."
-	exit 1
+	echo "The 'PPA_DRY_RUN' environment variable is not set, default value = 'ON' (safe default, no upload)."
+	PPA_DRY_RUN="ON"
 fi
+
+DPUT_HOST="ppa:aff3ct/aff3ct"
 
 if [ -z "$LFLAGS" ]
 then
@@ -73,6 +61,15 @@ else
 	         -DAFF3CT_UPLOAD_PPA="ON" -DAFF3CT_DPUT_HOST="$DPUT_HOST" \
 	         -DAFF3CT_PPA_DISTRIB="$DISTRIBS"
 	rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+fi
+
+make -j $THREADS -k
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+if [ "$PPA_DRY_RUN" = "ON" ]
+then
+	echo "Dry-run mode: Debian source packages built, skipping Launchpad upload."
+	exit 0
 fi
 
 if command -v apt-get >/dev/null; then
@@ -116,9 +113,6 @@ incoming = ~%(ppa)s/ubuntu/
 login = team-aff3ct
 allow_unsigned_uploads = 1
 EOF
-
-make -j $THREADS -k
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 for dist in $(echo $DISTRIBS | tr ';' ' '); do
 	echo "Uploading distribution $dist to Launchpad PPA via SFTP..."
