@@ -213,11 +213,13 @@ jobs:
           path: ${{ env.NAME }}
 
   build-deploy-macos:
-    runs-on: macos-latest
+    # macos-13 is the Intel (x86_64) runner, so this produces a genuine
+    # x64 SSE4.2 build (macos-latest is Apple Silicon/arm64).
+    runs-on: macos-13
     env:
       CC: clang
       CXX: clang++
-      CFLAGS: "-Wall -funroll-loops"
+      CFLAGS: "-Wall -funroll-loops -m64 -msse4.2"
       CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
       NAME: build_macos_clang
     steps:
@@ -243,7 +245,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: deploy-macos-clang
+          name: deploy-macos-clang-x64-sse4.2
           path: ${{ env.NAME }}
 
   # ============================================================================
