@@ -1,7 +1,11 @@
 name: Regression & Coverage Suite
 
 on:
+  # Only branch pushes (not tags) — a tag points at an already-tested
+  # commit, so re-running the self-hosted suite on it would be redundant.
   push:
+    branches:
+      - "**"
   pull_request:
   # Schedule always runs against the repo's default branch (develop on
   # aff3ct/aff3ct) regardless of any branch filter, so this is effectively
