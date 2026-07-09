@@ -290,7 +290,6 @@ jobs:
 
       - name: Package builds into zip archives
         run: |
-          source ./ci/tools/git-tag.sh
           source ./ci/tools/git-hash.sh
           source ./ci/tools/git-date.sh
           source ./ci/tools/git-message.sh
@@ -331,7 +330,6 @@ jobs:
           done
 
           echo "BUILDS_LIST=$BUILDS_LIST" >> $GITHUB_ENV
-          echo "GIT_TAG=$GIT_TAG" >> $GITHUB_ENV
           echo "GIT_HASH=$GIT_HASH" >> $GITHUB_ENV
           echo "GIT_DATE=$GIT_DATE" >> $GITHUB_ENV
           echo "GIT_MESSAGE=$GIT_MESSAGE" >> $GITHUB_ENV
@@ -386,7 +384,7 @@ jobs:
 
           CSV_ENTRY=$(grep "$GIT_HASH" "$CSV_FILE" || true)
           if [ -z "$CSV_ENTRY" ]; then
-            echo "\"$GIT_TAG\",\"$GIT_HASH\",\"$GIT_DATE\",\"$GIT_MESSAGE\",\"$GIT_AUTHOR\",\"$RELEASE_PATH\",\"$BUILDS_LIST\"" >> "$CSV_FILE"
+            echo "\"$RELEASE_TAG\",\"$GIT_HASH\",\"$GIT_DATE\",\"$GIT_MESSAGE\",\"$GIT_AUTHOR\",\"$RELEASE_PATH\",\"$BUILDS_LIST\"" >> "$CSV_FILE"
             git config user.name "GitHub Actions CI"
             git config user.email "ci@aff3ct.github.io"
             git add "$CSV_FILE"
