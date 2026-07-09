@@ -1,16 +1,16 @@
 name: Deploy
 
 on:
+  # Real publish (PPA dput, GitHub Release, website CSV) happens only on
+  # v* tags. Every branch push and every pull request runs a dry-run
+  # (build + package + generate docs, but no external push) to validate
+  # packaging early.
   push:
     branches:
-      - develop
-      - ppa_upload
-      - github-actions-migration
+      - "**"
     tags:
       - "v*"
   pull_request:
-    branches:
-      - develop
 
 defaults:
   run:
@@ -50,7 +50,6 @@ jobs:
 
   deploy-ppa:
     needs: build-doc
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_ppa
     env:
@@ -59,8 +58,10 @@ jobs:
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
       GIT_BRANCH: ${{ github.ref_name }}
-      # Only real tags (v*) upload to Launchpad; branch pushes just build
-      # the Debian source packages to catch packaging breakage early.
+      # Only real tags (v*) upload to Launchpad. Every other trigger
+      # (pushes on any branch, pull requests) runs a dry-run: the Debian
+      # source packages are built to catch packaging breakage early, but
+      # no dput upload is performed.
       PPA_DRY_RUN: ${{ github.ref_type == 'tag' && 'OFF' || 'ON' }}
     steps:
       - uses: actions/checkout@v4
@@ -248,8 +249,10 @@ jobs:
   # ============================================================================
   # DEPLOY BINARIES
   # ============================================================================
-  # - Tagged versions (v*): GitHub Release (official) + website CSV
-  # - Dev pushes / PRs:     Push to resources repo  + website CSV
+  # - Tagged versions (v*): publish -> GitHub Release (official) + website CSV
+  # - Everything else:      dry-run -> zip the builds and keep them as a
+  #                         workflow artifact for inspection; nothing is
+  #                         pushed to any external repo or website.
 
   deploy-binaries:
     needs: [build-deploy-linux, build-deploy-windows, build-deploy-macos]
@@ -269,20 +272,20 @@ jobs:
 
       - name: Determine release type
         run: |
+          # Only tagged versions publish; other triggers are dry-runs and
+          # just need a sensible RELEASE_TAG for zip filenames.
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "RELEASE_TYPE=tag" >> $GITHUB_ENV
             echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
-            echo "CSV_FILE=download/download_master.csv" >> $GITHUB_ENV
+            echo "CSV_FILE=download/download_released.csv" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
             SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
             echo "RELEASE_TYPE=pr" >> $GITHUB_ENV
             echo "RELEASE_TAG=ci-pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
-            echo "CSV_FILE=download/download_develop.csv" >> $GITHUB_ENV
           else
             SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
             echo "RELEASE_TYPE=dev" >> $GITHUB_ENV
             echo "RELEASE_TAG=ci-develop-${SHORT_SHA}" >> $GITHUB_ENV
-            echo "CSV_FILE=download/download_develop.csv" >> $GITHUB_ENV
           fi
 
       - name: Package builds into zip archives
@@ -346,33 +349,18 @@ jobs:
             --notes "Official release $RELEASE_TAG (commit $GIT_HASH)." || \
           gh release upload "$RELEASE_TAG" releases_zip/*.zip --clobber
 
-      # ---- Dev/PR builds: push to resources repo ----
-      - name: Push to resources repo
+      # ---- Dry-run (non-tag): keep the zips as an inspectable artifact,
+      #      publish nothing ----
+      - name: Upload dry-run binaries (no deploy)
         if: env.RELEASE_TYPE != 'tag'
-        env:
-          RESOURCES_DEPLOY_KEY: ${{ secrets.RESOURCES_DEPLOY_KEY }}
-        run: |
-          if [ -z "$RESOURCES_DEPLOY_KEY" ]; then
-            echo "Skipping resources push: RESOURCES_DEPLOY_KEY secret not configured."
-            exit 0
-          fi
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-binaries
+          path: releases_zip
 
-          mkdir -p ~/.ssh
-          echo "$RESOURCES_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-          git clone --depth 1 git@github.com:aff3ct/resources.git
-          cp releases_zip/*.zip resources/aff3ct_builds/
-          cd resources
-          git config user.name "GitHub Actions CI"
-          git config user.email "ci@aff3ct.github.io"
-          git add aff3ct_builds/
-          git commit -m "Automatic: add AFF3CT builds ($RELEASE_TAG: $GIT_HASH)."
-          git push origin master
-
-      # ---- Website CSV update (all types) ----
+      # ---- Tagged releases only: update website download CSV ----
       - name: Update Website CSV
+        if: env.RELEASE_TYPE == 'tag'
         env:
           WEBSITE_DEPLOY_KEY: ${{ secrets.WEBSITE_DEPLOY_KEY }}
         run: |
@@ -389,12 +377,8 @@ jobs:
           git clone git@github.com:aff3ct/aff3ct.github.io.git
           cd aff3ct.github.io
 
-          # Build the download base URL
-          if [ "$RELEASE_TYPE" = "tag" ]; then
-            RELEASE_PATH="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/"
-          else
-            RELEASE_PATH="https://github.com/aff3ct/resources/raw/master/aff3ct_builds/"
-          fi
+          # Tagged releases are served from the GitHub Releases page.
+          RELEASE_PATH="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/"
 
           if [ ! -f "$CSV_FILE" ]; then
             echo "tag,hash,date,message,author,path,builds" > "$CSV_FILE"

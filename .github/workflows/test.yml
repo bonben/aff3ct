@@ -25,6 +25,44 @@ defaults:
 
 jobs:
   # ============================================================================
+  # EXTERNAL PR GATE
+  # ============================================================================
+  # This suite runs on our self-hosted runner, so a PR from a contributor
+  # without at least Write access to this repo must wait for a maintainer
+  # to approve it via the "external-pr-review" environment before any
+  # self-hosted job starts. Permission is looked up live from GitHub - no
+  # hand-maintained admin list to go stale - so Write/Maintain/Admin
+  # collaborators skip the gate, the same as if they'd just pushed the
+  # branch directly. Direct pushes, the weekly schedule, and
+  # workflow_dispatch runs always skip it too (only pull_request is gated).
+  check-pr-permission:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      permission: ${{ steps.check.outputs.permission }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOGIN: ${{ github.event.pull_request.user.login }}
+        run: |
+          PERM=$(gh api "repos/${{ github.repository }}/collaborators/$LOGIN/permission" --jq .permission 2>/dev/null || echo none)
+          echo "PR author '$LOGIN' has permission: $PERM"
+          echo "permission=$PERM" >> "$GITHUB_OUTPUT"
+
+  authorize-external-pr:
+    needs: check-pr-permission
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.check-pr-permission.outputs.permission != 'admin' &&
+      needs.check-pr-permission.outputs.permission != 'maintain' &&
+      needs.check-pr-permission.outputs.permission != 'write'
+    runs-on: ubuntu-latest
+    environment: external-pr-review
+    steps:
+      - run: echo "Approved to run self-hosted regression/coverage for this external PR."
+
+  # ============================================================================
   # SCHEDULE GATE (skip the weekly thorough run if develop hasn't changed)
   # ============================================================================
   check-schedule:
@@ -52,9 +90,11 @@ jobs:
   # REGRESSION TESTS
   # ============================================================================
   build-regression:
-    needs: check-schedule
+    needs: [authorize-external-pr, check-schedule]
     if: |
       always() &&
+      needs.authorize-external-pr.result != 'failure' &&
+      needs.authorize-external-pr.result != 'cancelled' &&
       (needs.check-schedule.result == 'skipped' || needs.check-schedule.outputs.should_run == 'true')
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
@@ -165,9 +205,14 @@ jobs:
   # CODE COVERAGE
   # ============================================================================
   build-coverage:
+    needs: authorize-external-pr
     # Coverage is a push/PR-only concern; the weekly schedule run is
     # regression-only (in thorough mode), so skip coverage entirely here.
-    if: github.event_name != 'schedule'
+    if: |
+      always() &&
+      github.event_name != 'schedule' &&
+      needs.authorize-external-pr.result != 'failure' &&
+      needs.authorize-external-pr.result != 'cancelled'
     runs-on: [self-hosted, imt-atlantique]
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
     env:
