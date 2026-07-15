@@ -1,0 +1,439 @@
+name: Deploy
+
+on:
+  # Real publish (PPA dput, GitHub Release, website CSV) happens only on
+  # v* tags. Every branch push and every pull request runs a dry-run
+  # (build + package + generate docs, but no external push) to validate
+  # packaging early.
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+# A newer push to the same ref supersedes the previous dry-run; real tag
+# deploys are never cancelled.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  # ============================================================================
+  # PPA DEPLOYMENT (doc + Debian packages)
+  # ============================================================================
+  build-doc:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_doc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+      - name: Generate Documentation
+        run: |
+          export THREADS="4"
+          ./ci/analysis-documentation.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ppa-documentation
+          path: |
+            doc/build/html
+            doc/build/doxygen
+
+  deploy-ppa:
+    needs: build-doc
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_ppa
+    env:
+      DISTRIBS: "jammy;noble;resolute"
+      CXX: g++
+      NAME: build_deploy_upload_ppa
+      CI_AFF3CT_DEPLOY: "ON"
+      # Only real tags (v*) upload to Launchpad. Every other trigger
+      # (pushes on any branch, pull requests) runs a dry-run: the Debian
+      # source packages are built to catch packaging breakage early, but
+      # no dput upload is performed.
+      PPA_DRY_RUN: ${{ github.ref_type == 'tag' && 'OFF' || 'ON' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ppa-documentation
+          path: doc/build
+
+      - name: Import GPG Key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | gpg --batch --import --pinentry-mode loopback --no-tty
+            KEYID=$(gpg --list-secret-keys --keyid-format=long | awk '/^sec/ {print $2}' | cut -d'/' -f2 | head -n1)
+            echo "DEBSIGN_KEYID=\"$KEYID\"" > ~/.devscripts
+            echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-k$KEYID\"" >> ~/.devscripts
+            echo "Configured debuild to sign with key ID: $KEYID"
+          else
+            # No GPG key available (e.g. dry-run on a PR from a fork, where
+            # secrets are empty): build the source packages unsigned so the
+            # dry-run can still validate the packaging.
+            echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-us -uc\"" > ~/.devscripts
+            echo "No GPG key available: debuild will build unsigned packages."
+          fi
+
+      - name: Deploy PPA
+        env:
+          LAUNCHPAD_SSH_KEY: ${{ secrets.LAUNCHPAD_SSH_KEY }}
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/deploy/deploy-upload-ppa.sh
+
+  # ============================================================================
+  # BUILD BINARIES FOR DISTRIBUTION
+  # ============================================================================
+  # Curated, statically-linked builds for end-user download.
+  # Different from the CI verification builds in build.yml.
+
+  build-deploy-linux:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc-x64-sse4.2
+            cflags_spe: "-m64 -msse4.2 -faligned-new"
+          - compiler: gcc-x64-avx2
+            cflags_spe: "-m64 -mavx2 -mfma -faligned-new"
+    env:
+      CC: gcc
+      CXX: g++
+      CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
+      LFLAGS: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
+      NAME: build_linux_${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-linux-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
+
+  build-deploy-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc-x86-sse4.2
+            msystem: MINGW32
+            cflags_spe: "-m32 -msse4.2 -faligned-new"
+            package: "mingw-w64-i686-gcc mingw-w64-i686-cmake make"
+          - compiler: gcc-x64-avx2
+            msystem: MINGW64
+            cflags_spe: "-m64 -mavx2 -mfma -faligned-new"
+            package: "mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make"
+    env:
+      CC: gcc
+      CXX: g++
+      CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
+      LFLAGS: "-static -static-libgcc -static-libstdc++"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF -DSPU_STACKTRACE=OFF"
+      NAME: build_windows_${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: ${{ matrix.package }}
+
+      - name: Build Windows GCC
+        shell: msys2 {0}
+        run: |
+          source ./ci/tools/threads.sh
+          mkdir build && cd build
+          cmake .. -G"Unix Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release ${CMAKE_OPT} -DCMAKE_CXX_FLAGS="${CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="${LFLAGS}" -DCMAKE_INSTALL_PREFIX="../${NAME}"
+          make -j ${THREADS}
+          make install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-windows-${{ matrix.compiler }}
+          path: ${{ env.NAME }}
+
+  build-deploy-macos:
+    # Two macOS builds: Apple Silicon (arm64, macos-latest) and Intel
+    # (x64 SSE4.2, macos-15-intel). macos-13 was the old Intel image but
+    # is retired; macos-15-intel is the last supported Intel runner
+    # (available until ~Fall 2027).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            cflags_spe: ""
+            artifact: deploy-macos-clang-arm64
+          - runner: macos-15-intel
+            cflags_spe: "-m64 -msse4.2"
+            artifact: deploy-macos-clang-x64-sse4.2
+    runs-on: ${{ matrix.runner }}
+    env:
+      CC: clang
+      CXX: clang++
+      CFLAGS: "-Wall -funroll-loops ${{ matrix.cflags_spe }}"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
+      NAME: build_macos_clang
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ env.NAME }}
+
+  # ============================================================================
+  # DEPLOY BINARIES
+  # ============================================================================
+  # - Tagged versions (v*): publish -> GitHub Release (official) + website CSV
+  # - Everything else:      dry-run -> zip the builds and keep them as a
+  #                         workflow artifact for inspection; nothing is
+  #                         pushed to any external repo or website.
+
+  deploy-binaries:
+    needs: [build-deploy-linux, build-deploy-windows, build-deploy-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all deploy artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: deploy-*
+          path: builds_raw
+
+      - name: Determine release type
+        run: |
+          # Only tagged versions publish; other triggers are dry-runs and
+          # just need a sensible RELEASE_TAG for zip filenames.
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "RELEASE_TYPE=tag" >> $GITHUB_ENV
+            echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "CSV_FILE=download/download_released.csv" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
+            echo "RELEASE_TYPE=pr" >> $GITHUB_ENV
+            echo "RELEASE_TAG=ci-pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+          else
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "RELEASE_TYPE=dev" >> $GITHUB_ENV
+            echo "RELEASE_TAG=ci-develop-${SHORT_SHA}" >> $GITHUB_ENV
+          fi
+
+      - name: Package builds into zip archives
+        run: |
+          source ./ci/tools/git-hash.sh
+          source ./ci/tools/git-date.sh
+          source ./ci/tools/git-message.sh
+          source ./ci/tools/git-author.sh
+
+          # Determine label for zip filenames
+          if [ "$RELEASE_TYPE" = "tag" ]; then
+            BRANCH_LABEL="$RELEASE_TAG"
+          elif [ "$RELEASE_TYPE" = "pr" ]; then
+            BRANCH_LABEL="pr${{ github.event.pull_request.number }}"
+          else
+            source ./ci/tools/git-branch.sh
+            BRANCH_LABEL="$GIT_BRANCH"
+          fi
+          # Branch names may contain '/' (e.g. feature/foo) which would break
+          # the zip file path below.
+          BRANCH_LABEL=${BRANCH_LABEL//\//_}
+
+          mkdir -p releases_zip
+          BUILDS_LIST=""
+
+          for BUILD_DIR in builds_raw/deploy-*; do
+            if [ -d "$BUILD_DIR" ]; then
+              BUILD_NAME=$(basename "$BUILD_DIR")
+              # deploy-linux-gcc-x64-sse4.2 -> aff3ct_develop_linux_gcc-x64-sse4_2_<hash>.zip
+              SUFFIX=${BUILD_NAME#deploy-}
+              PREFIX="aff3ct_${BRANCH_LABEL}"
+              ZIP_BASE="${PREFIX}_${SUFFIX}"
+              ZIP_BASE=${ZIP_BASE//\./_}
+              ZIP_NAME="${ZIP_BASE}_${GIT_HASH}.zip"
+
+              echo "Packaging $BUILD_DIR into $ZIP_NAME..."
+              (cd "$BUILD_DIR" && zip -r "../../releases_zip/$ZIP_NAME" .)
+
+              if [ -z "$BUILDS_LIST" ]; then
+                BUILDS_LIST="$ZIP_NAME"
+              else
+                BUILDS_LIST="$BUILDS_LIST;$ZIP_NAME"
+              fi
+            fi
+          done
+
+          echo "BUILDS_LIST=$BUILDS_LIST" >> $GITHUB_ENV
+          echo "GIT_HASH=$GIT_HASH" >> $GITHUB_ENV
+          echo "GIT_DATE=$GIT_DATE" >> $GITHUB_ENV
+          echo "GIT_MESSAGE=$GIT_MESSAGE" >> $GITHUB_ENV
+          echo "GIT_AUTHOR=$GIT_AUTHOR" >> $GITHUB_ENV
+
+      # ---- Tagged releases: GitHub Releases page ----
+      - name: Create GitHub Release
+        if: env.RELEASE_TYPE == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Creating official release $RELEASE_TAG..."
+          gh release create "$RELEASE_TAG" releases_zip/*.zip \
+            --title "AFF3CT $RELEASE_TAG" \
+            --notes "Official release $RELEASE_TAG (commit $GIT_HASH)." || \
+          gh release upload "$RELEASE_TAG" releases_zip/*.zip --clobber
+
+      # ---- Dry-run (non-tag): keep the zips as an inspectable artifact,
+      #      publish nothing ----
+      - name: Upload dry-run binaries (no deploy)
+        if: env.RELEASE_TYPE != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-binaries
+          path: releases_zip
+
+      # ---- Tagged releases only: update website download CSV ----
+      - name: Update Website CSV
+        if: env.RELEASE_TYPE == 'tag'
+        env:
+          WEBSITE_DEPLOY_KEY: ${{ secrets.WEBSITE_DEPLOY_KEY }}
+        run: |
+          if [ -z "$WEBSITE_DEPLOY_KEY" ]; then
+            echo "Skipping website CSV update: WEBSITE_DEPLOY_KEY secret not configured."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$WEBSITE_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          git clone git@github.com:aff3ct/aff3ct.github.io.git
+          cd aff3ct.github.io
+
+          # Tagged releases are served from the GitHub Releases page.
+          RELEASE_PATH="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/"
+
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "tag,hash,date,message,author,path,builds" > "$CSV_FILE"
+          fi
+
+          CSV_ENTRY=$(grep -F "\"$GIT_HASH\"" "$CSV_FILE" || true)
+          if [ -z "$CSV_ENTRY" ]; then
+            echo "\"$RELEASE_TAG\",\"$GIT_HASH\",\"$GIT_DATE\",\"$GIT_MESSAGE\",\"$GIT_AUTHOR\",\"$RELEASE_PATH\",\"$BUILDS_LIST\"" >> "$CSV_FILE"
+            git config user.name "GitHub Actions CI"
+            git config user.email "ci@aff3ct.github.io"
+            git add "$CSV_FILE"
+            git commit -m "Automatic: add new AFF3CT builds ($RELEASE_TAG: $GIT_HASH)."
+            git push origin master
+          else
+            echo "Entry for hash $GIT_HASH already exists in $CSV_FILE."
+          fi
+
+  # ============================================================================
+  # PENDING
+  # ============================================================================
+  #
+  # deploy-sonarqube:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: SonarQube Scan
+  #       run: echo "Pending completion of Step 3 (Tests/Coverage)."
+  #
+  # pages:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy Coverage Pages
+  #       run: echo "Pending completion of Step 3 (Tests/Coverage)."

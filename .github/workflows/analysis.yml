@@ -1,0 +1,168 @@
+name: Analysis
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+defaults:
+  run:
+    shell: bash
+
+
+jobs:
+  headers:
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      - name: Generate and check headers
+        run: |
+          apt-get update && apt-get install -y diffutils
+          ./scripts/generate_aff3ct_header.sh aff3ct.hpp
+          diff aff3ct.hpp include/aff3ct.hpp
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_cppcheck:v1.9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      - name: Run cppcheck
+        run: ./ci/analysis-cppcheck.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-cppcheck-logs
+          path: cppcheck/
+
+  clang-format:
+    runs-on: ubuntu-latest
+    container: ubuntu:22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      - name: Run clang-format
+        run: |
+          apt-get update
+          apt-get -y install clang-format diffutils
+          clang-format --version
+          mkdir original_code
+          cp -r include original_code
+          cp -r src original_code
+          ./scripts/apply_clang_format.sh
+          mkdir new_code
+          cp -r include new_code
+          cp -r src new_code
+          diff -r new_code original_code
+
+  clang:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_clang:v10.0.0
+    env:
+      CFLAGS: -pedantic -fdiagnostics-show-option -Wall -Wno-overloaded-virtual
+      CMAKE_OPT: -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=OFF -DAFF3CT_COMPILE_SHARED_LIB=OFF -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      NAME: build_analysis_clang
+      REPORTS_DIR: clang_reports
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      # In container jobs ${{ github.workspace }} expands to the host path,
+      # not the container path, so derive CCACHE_DIR at runtime instead.
+      - name: Set ccache dir
+        run: echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> "$GITHUB_ENV"
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-clang-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clang-ccache-
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+      - name: Run analysis clang
+        run: |
+          apt-get update && apt-get install -y ccache
+          export PATH="/usr/lib/ccache:$PATH"
+          ccache --max-size=500M
+          source ./ci/tools/threads.sh
+          ./ci/analysis-clang.sh
+          ccache -s
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-clang-reports
+          path: clang_reports/
+
+  git-submodules:
+    if: github.ref_name == 'master' || github.ref_name == 'develop'
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_git:v2.25.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      - name: Update submodules with fallback
+        run: |
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+      - name: Run git submodule check
+        run: |
+          source ./ci/tools/git-branch.sh
+          ./ci/analysis-git-submodule.sh
+
+  documentation:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_doc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+      # In container jobs ${{ github.workspace }} expands to the host path,
+      # not the container path, so derive PIP_CACHE_DIR at runtime instead.
+      - name: Set pip cache dir
+        run: echo "PIP_CACHE_DIR=$GITHUB_WORKSPACE/.pip_cache" >> "$GITHUB_ENV"
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: .pip_cache
+          key: ${{ runner.os }}-pip-doc-${{ hashFiles('doc/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-doc-
+      - name: Run documentation check
+        run: |
+          export THREADS="1"
+          ./ci/analysis-documentation.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-documentation
+          path: |
+            doc/build/html
+            doc/build/doxygen

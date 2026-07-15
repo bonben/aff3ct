@@ -33,7 +33,7 @@ function gen_coverage_info
 	done
 }
 
-gen_coverage_info "${build_root}" "refs"
+gen_coverage_info "${build_root}" "${1:-refs}"
 cd ${WD}
 
 mkdir code_coverage_files || true

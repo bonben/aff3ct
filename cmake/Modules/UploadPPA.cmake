@@ -181,8 +181,8 @@ foreach(DISTRI ${AFF3CT_PPA_DISTRIB})
     # ##############################################################################
     # dput ppa:your-lp-id/ppa <source.changes>
     # TODO : Add possibility to use .dc file
-    add_custom_target(dput_${DISTRI} ALL
-                      COMMAND ${DPUT_EXECUTABLE} ${AFF3CT_DPUT_HOST} ${DEBIAN_SOURCE_CHANGES}
+    add_custom_target(dput_${DISTRI}
+                      COMMAND ${DPUT_EXECUTABLE} -u ${AFF3CT_DPUT_HOST} ${DEBIAN_SOURCE_CHANGES}
                       DEPENDS  debuild_${DISTRI}
                       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/Debian/${DISTRI})
 
