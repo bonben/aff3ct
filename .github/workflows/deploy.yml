@@ -16,6 +16,12 @@ defaults:
   run:
     shell: bash
 
+# A newer push to the same ref supersedes the previous dry-run; real tag
+# deploys are never cancelled.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 jobs:
   # ============================================================================
   # PPA DEPLOYMENT (doc + Debian packages)
@@ -57,7 +63,6 @@ jobs:
       CXX: g++
       NAME: build_deploy_upload_ppa
       CI_AFF3CT_DEPLOY: "ON"
-      GIT_BRANCH: ${{ github.ref_name }}
       # Only real tags (v*) upload to Launchpad. Every other trigger
       # (pushes on any branch, pull requests) runs a dry-run: the Debian
       # source packages are built to catch packaging breakage early, but
@@ -94,13 +99,19 @@ jobs:
             echo "DEBSIGN_KEYID=\"$KEYID\"" > ~/.devscripts
             echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-k$KEYID\"" >> ~/.devscripts
             echo "Configured debuild to sign with key ID: $KEYID"
+          else
+            # No GPG key available (e.g. dry-run on a PR from a fork, where
+            # secrets are empty): build the source packages unsigned so the
+            # dry-run can still validate the packaging.
+            echo "DEBUILD_DPKG_BUILDPACKAGE_OPTS=\"-us -uc\"" > ~/.devscripts
+            echo "No GPG key available: debuild will build unsigned packages."
           fi
 
       - name: Deploy PPA
         env:
           LAUNCHPAD_SSH_KEY: ${{ secrets.LAUNCHPAD_SSH_KEY }}
         run: |
-          source ./ci/tools/git-branch.sh
+          source ./ci/tools/threads.sh
           ./ci/deploy/deploy-upload-ppa.sh
 
   # ============================================================================
@@ -318,6 +329,9 @@ jobs:
             source ./ci/tools/git-branch.sh
             BRANCH_LABEL="$GIT_BRANCH"
           fi
+          # Branch names may contain '/' (e.g. feature/foo) which would break
+          # the zip file path below.
+          BRANCH_LABEL=${BRANCH_LABEL//\//_}
 
           mkdir -p releases_zip
           BUILDS_LIST=""
@@ -396,7 +410,7 @@ jobs:
             echo "tag,hash,date,message,author,path,builds" > "$CSV_FILE"
           fi
 
-          CSV_ENTRY=$(grep "$GIT_HASH" "$CSV_FILE" || true)
+          CSV_ENTRY=$(grep -F "\"$GIT_HASH\"" "$CSV_FILE" || true)
           if [ -z "$CSV_ENTRY" ]; then
             echo "\"$RELEASE_TAG\",\"$GIT_HASH\",\"$GIT_DATE\",\"$GIT_MESSAGE\",\"$GIT_AUTHOR\",\"$RELEASE_PATH\",\"$BUILDS_LIST\"" >> "$CSV_FILE"
             git config user.name "GitHub Actions CI"

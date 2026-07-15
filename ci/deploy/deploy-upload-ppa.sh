@@ -72,6 +72,14 @@ then
 	exit 0
 fi
 
+# Real upload: refuse to push unsigned packages (Launchpad would reject them
+# asynchronously by email while CI shows green).
+if ! gpg --list-secret-keys 2>/dev/null | grep -q sec
+then
+	echo "ERROR: no GPG secret key available to sign the packages; aborting real PPA upload."
+	exit 1
+fi
+
 if command -v apt-get >/dev/null; then
 	apt-get update && apt-get install -y python3-paramiko openssh-client || true
 fi

@@ -75,13 +75,16 @@ jobs:
       CMAKE_OPT: -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=OFF -DAFF3CT_COMPILE_SHARED_LIB=OFF -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       NAME: build_analysis_clang
       REPORTS_DIR: clang_reports
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
           submodules: false
+      # In container jobs ${{ github.workspace }} expands to the host path,
+      # not the container path, so derive CCACHE_DIR at runtime instead.
+      - name: Set ccache dir
+        run: echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> "$GITHUB_ENV"
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -89,7 +92,6 @@ jobs:
           key: ${{ runner.os }}-clang-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-clang-ccache-
-          save-always: true
       - name: Update submodules with fallback
         run: |
           if ! git submodule update --init --recursive; then
@@ -136,14 +138,16 @@ jobs:
   documentation:
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_doc
-    env:
-      PIP_CACHE_DIR: ${{ github.workspace }}/.pip_cache
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
           submodules: false
+      # In container jobs ${{ github.workspace }} expands to the host path,
+      # not the container path, so derive PIP_CACHE_DIR at runtime instead.
+      - name: Set pip cache dir
+        run: echo "PIP_CACHE_DIR=$GITHUB_WORKSPACE/.pip_cache" >> "$GITHUB_ENV"
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
@@ -151,7 +155,6 @@ jobs:
           key: ${{ runner.os }}-pip-doc-${{ hashFiles('doc/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-doc-
-          save-always: true
       - name: Run documentation check
         run: |
           export THREADS="1"
