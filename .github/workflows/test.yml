@@ -27,13 +27,6 @@ defaults:
   run:
     shell: bash
 
-# Protect the single self-hosted runner: a newer push to the same ref
-# supersedes the previous run. Keyed on event_name too so a develop push
-# cannot cancel the weekly scheduled thorough run.
-concurrency:
-  group: test-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   # ============================================================================
   # EXTERNAL PR GATE
