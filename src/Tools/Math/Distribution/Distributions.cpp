@@ -92,7 +92,7 @@ Distributions<R>::read_noise_range()
     {
         auto pos = f_distributions.tellg();
         this->noise_file_index.push_back(pos);
-        this->noise_file_index.back();
+        (void)this->noise_file_index.back();
 
         for (unsigned i = 0; i < this->desc.size(); i++)
         {
