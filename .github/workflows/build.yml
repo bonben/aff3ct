@@ -211,3 +211,27 @@ jobs:
           path: ${{ env.NAME }}
           retention-days: 7
 
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop' instead of each build-matrix leaf above.
+  # It fails only when a build job failed or was cancelled, so compilers can be
+  # added/removed/renamed in the matrix without touching branch protection.
+  build-all-green:
+    name: build-all-green
+    needs: [build-linux, build-windows, build-macos]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required build jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required build job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required build jobs passed (skipped jobs are tolerated)."
+

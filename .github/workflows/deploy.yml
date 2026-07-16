@@ -423,6 +423,30 @@ jobs:
           fi
 
   # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop'. On PRs/branches the deploy jobs run as
+  # dry-runs (no external publish); this job makes them blocking so packaging
+  # breakage is caught before merge, while tolerating jobs skipped by design.
+  deploy-all-green:
+    name: deploy-all-green
+    needs: [build-doc, deploy-ppa, build-deploy-linux, build-deploy-windows, build-deploy-macos, deploy-binaries]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required deploy jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required deploy job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required deploy jobs passed (skipped jobs are tolerated)."
+
+  # ============================================================================
   # PENDING
   # ============================================================================
   #
