@@ -441,9 +441,6 @@
 #ifndef DECODER_POLAR_MK_SCL_NAIVE_SYS
 #include <Module/Decoder/Polar_MK/SCL/Decoder_polar_MK_SCL_naive_sys.hpp>
 #endif
-#ifndef DECODER_POLAR_PAC_FANO_NAIVE
-#include <Module/Decoder/Polar_PAC/Fano/Decoder_polar_PAC_Fano_naive.hpp>
-#endif
 #ifndef DECODER_POLAR_PAC_SCL_NAIVE
 #include <Module/Decoder/Polar_PAC/SCL/Decoder_polar_PAC_SCL_naive.hpp>
 #endif
