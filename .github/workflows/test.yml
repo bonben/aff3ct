@@ -1,0 +1,358 @@
+name: Regression & Coverage Suite
+
+on:
+  # Only branch pushes (not tags) — a tag points at an already-tested
+  # commit, so re-running the self-hosted suite on it would be redundant.
+  push:
+    branches:
+      - "**"
+  pull_request:
+  # Schedule always runs against the repo's default branch (develop on
+  # aff3ct/aff3ct) regardless of any branch filter, so this is effectively
+  # develop-only.
+  schedule:
+    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      test_profile:
+        description: 'Verification Depth'
+        required: true
+        default: 'fast'
+        type: choice
+        options:
+          - fast
+          - thorough
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # EXTERNAL PR GATE
+  # ============================================================================
+  # This suite runs on our self-hosted runner, so a PR from a contributor
+  # without at least Write access to this repo must wait for a maintainer
+  # to approve it via the "external-pr-review" environment before any
+  # self-hosted job starts. Permission is looked up live from GitHub - no
+  # hand-maintained admin list to go stale - so Write/Maintain/Admin
+  # collaborators skip the gate, the same as if they'd just pushed the
+  # branch directly. Direct pushes, the weekly schedule, and
+  # workflow_dispatch runs always skip it too (only pull_request is gated).
+  check-pr-permission:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      permission: ${{ steps.check.outputs.permission }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOGIN: ${{ github.event.pull_request.user.login }}
+        run: |
+          PERM=$(gh api "repos/${{ github.repository }}/collaborators/$LOGIN/permission" --jq .permission 2>/dev/null || echo none)
+          echo "PR author '$LOGIN' has permission: $PERM"
+          echo "permission=$PERM" >> "$GITHUB_OUTPUT"
+
+  authorize-external-pr:
+    needs: check-pr-permission
+    # always() makes this fail-safe: if check-pr-permission itself failed,
+    # outputs.permission is empty and the approval gate engages instead of
+    # being skipped (which would let the suite run unapproved).
+    if: |
+      always() &&
+      github.event_name == 'pull_request' &&
+      needs.check-pr-permission.outputs.permission != 'admin' &&
+      needs.check-pr-permission.outputs.permission != 'maintain' &&
+      needs.check-pr-permission.outputs.permission != 'write'
+    runs-on: ubuntu-latest
+    environment: external-pr-review
+    steps:
+      - run: echo "Approved to run self-hosted regression/coverage for this external PR."
+
+  # ============================================================================
+  # SCHEDULE GATE (skip the weekly thorough run if develop hasn't changed)
+  # ============================================================================
+  check-schedule:
+    if: github.event_name == 'schedule'
+    runs-on: [self-hosted, imt-atlantique]
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        name: Check for commits in the last 7 days
+        run: |
+          if [ -n "$(git log --since='7 days ago' --oneline)" ]; then
+            echo "Changes found in the last 7 days, running thorough suite."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes in the last 7 days, skipping thorough suite."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ============================================================================
+  # REGRESSION TESTS
+  # ============================================================================
+  build-regression:
+    needs: [authorize-external-pr, check-schedule]
+    if: |
+      always() &&
+      needs.authorize-external-pr.result != 'failure' &&
+      needs.authorize-external-pr.result != 'cancelled' &&
+      (needs.check-schedule.result == 'skipped' || needs.check-schedule.outputs.should_run == 'true')
+    runs-on: [self-hosted, imt-atlantique]
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+    env:
+      COMPILER: gcc-x64-sse4.2
+      CC: gcc
+      CXX: g++
+      CFLAGS: "-Wall -funroll-loops -m64 -msse4.2 -faligned-new"
+      AFF3CT_PREC: MULTI
+      LFLAGS: "-static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive"
+      CMAKE_OPT: "-DAFF3CT_COMPILE_EXE=ON -DAFF3CT_COMPILE_STATIC_LIB=ON -DAFF3CT_COMPILE_SHARED_LIB=ON -DAFF3CT_PREC=MULTI -DAFF3CT_EXT_STRINGS=OFF"
+      NAME: build_linux_gcc-x64-sse4.2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build Regression Binaries
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regression-binaries
+          path: build_linux_gcc-x64-sse4.2
+
+  test-regression:
+    needs: build-regression
+    if: always() && needs.build-regression.result == 'success'
+    runs-on: [self-hosted, imt-atlantique]
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_python:v3.8.5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { CODE: BCH,        RESULT: bch }
+          - { CODE: CONV,       RESULT: conv }
+          - { CODE: LDPC,       RESULT: ldpc }
+          - { CODE: POLAR,      RESULT: polar }
+          - { CODE: POLAR_MK,   RESULT: polar-mk }
+          - { CODE: POLAR_PAC,  RESULT: polar-pac }
+          - { CODE: RA,         RESULT: ra }
+          - { CODE: REP,        RESULT: rep }
+          - { CODE: RS,         RESULT: rs }
+          - { CODE: RSC,        RESULT: rsc }
+          - { CODE: RSC_DB,     RESULT: rsc-db }
+          - { CODE: TURBO,      RESULT: turbo }
+          - { CODE: TURBO_DB,   RESULT: turbo-db }
+          - { CODE: TURBO_PROD, RESULT: turbo-prod }
+          - { CODE: UNCODED,    RESULT: uncoded }
+    env:
+      CODE: ${{ matrix.CODE }}
+      RESULT: ${{ matrix.RESULT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: regression-binaries
+          path: build_linux_gcc-x64-sse4.2
+
+      - name: Run Regression Suite (${{ matrix.CODE }})
+        run: |
+          chmod +x build_linux_gcc-x64-sse4.2/bin/* || true
+          source ./ci/tools/threads.sh
+          source ./ci/tools/git-version.sh
+          export VAR_NAME="CI_AFF3CT_TEST_${CODE}_TIME_SEC"
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event.inputs.test_profile }}" == "thorough" ]]; then
+            BASE_TIMEOUT=600
+          else
+            BASE_TIMEOUT=30
+          fi
+          export TIME_SEC="${!VAR_NAME:-$BASE_TIMEOUT}"
+          ./ci/test-regression.py --refs-path refs/${CODE} --results-path test-regression-results-${RESULT} --build-path build_linux_gcc-x64-sse4.2 --binary-path bin/aff3ct-$GIT_VERSION --max-snr-time $TIME_SEC --sensibility 2.5 --weak-rate 0.9 --verbose 1 --n-threads $THREADS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-regression-results-${{ matrix.RESULT }}
+          path: test-regression-results-${{ matrix.RESULT }}
+
+  # ============================================================================
+  # CODE COVERAGE
+  # ============================================================================
+  build-coverage:
+    needs: authorize-external-pr
+    # Coverage is a push/PR-only concern; the weekly schedule run is
+    # regression-only (in thorough mode), so skip coverage entirely here.
+    if: |
+      always() &&
+      github.event_name != 'schedule' &&
+      needs.authorize-external-pr.result != 'failure' &&
+      needs.authorize-external-pr.result != 'cancelled'
+    runs-on: [self-hosted, imt-atlantique]
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_gcc:v9.3.0
+    env:
+      CC: gcc
+      CXX: g++
+      CFLAGS: "-Wall -funroll-loops -msse4.2 -faligned-new --coverage"
+      LFLAGS: "--coverage"
+      CMAKE_OPT: "-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0 -DAFF3CT_COMPILE_EXE=ON -DAFF3CT_PREC=MULTI"
+      NAME: build_coverage_install
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - name: Build Coverage Binaries
+        run: |
+          source ./ci/tools/threads.sh
+          ./ci/build-linux-macos.sh
+          rm -rf build/lib/
+          find build/CMakeFiles/aff3ct-obj.dir/ -name "*.o" -type f -delete
+          tar -czvf build.tar.gz build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-archive
+          path: build.tar.gz
+
+  test-coverage:
+    needs: build-coverage
+    if: always() && needs.build-coverage.result == 'success'
+    runs-on: [self-hosted, imt-atlantique]
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { CODE: BCH,        RESULT: bch }
+          - { CODE: CONV,       RESULT: conv }
+          - { CODE: LDPC,       RESULT: ldpc }
+          - { CODE: POLAR,      RESULT: polar }
+          - { CODE: POLAR_MK,   RESULT: polar-mk }
+          - { CODE: POLAR_PAC,  RESULT: polar-pac }
+          - { CODE: RA,         RESULT: ra }
+          - { CODE: REP,        RESULT: rep }
+          - { CODE: RS,         RESULT: rs }
+          - { CODE: RSC,        RESULT: rsc }
+          - { CODE: RSC_DB,     RESULT: rsc-db }
+          - { CODE: TURBO,      RESULT: turbo }
+          - { CODE: TURBO_DB,   RESULT: turbo-db }
+          - { CODE: TURBO_PROD, RESULT: turbo-prod }
+          - { CODE: UNCODED,    RESULT: uncoded }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-archive
+          path: .
+
+      - name: Collect Coverage Tracking Data (${{ matrix.CODE }})
+        run: |
+          tar -xvvf build.tar.gz
+          source ./ci/tools/git-version.sh
+          ./ci/test-coverage-regression.sh refs/${{ matrix.CODE }}
+          mv code_coverage_files/aff3ct_clean.info code_coverage_files/aff3ct_clean_${{ matrix.RESULT }}.info
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-files-${{ matrix.RESULT }}
+          path: code_coverage_files
+
+  report-coverage:
+    needs: test-coverage
+    if: always() && needs.test-coverage.result == 'success'
+    runs-on: [self-hosted, imt-atlantique]
+    container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_coverage
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Update submodules with fallback
+        run: |
+          git config --global --add safe.directory '*'
+          if ! git submodule update --init --recursive; then
+            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
+            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
+            git submodule update --init --recursive
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: code-coverage-files-*
+          path: code_coverage_files
+          merge-multiple: true
+
+      - name: Generate HTML & XML Coverage Reports
+        run: |
+          LCOV_ARGS=()
+          for f in code_coverage_files/aff3ct_clean_*.info; do
+            LCOV_ARGS+=("-a" "$f")
+          done
+          lcov "${LCOV_ARGS[@]}" -o code_coverage_files/aff3ct_clean.info
+          ./ci/coverage-linux.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: code_coverage_report

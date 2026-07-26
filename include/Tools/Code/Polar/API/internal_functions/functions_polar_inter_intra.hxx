@@ -1,7 +1,4 @@
 #include <algorithm>
-#ifdef _MSC_VER
-#include <iterator>
-#endif
 
 #include "Tools/Code/Polar/API/internal_functions/functions_polar_inter_intra.h"
 
@@ -338,11 +335,7 @@ void
 xo0_inter_intra<B, N_ELMTS, N_FRAMES>::apply(const B* __restrict s_b, B* __restrict s_c, const int /*n_elmts*/)
 {
     constexpr auto _n_elmts = N_ELMTS * N_FRAMES;
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + _n_elmts, stdext::checked_array_iterator<B*>(s_c, _n_elmts));
-#else
     std::copy(s_b, s_b + _n_elmts, s_c);
-#endif
 }
 
 template<typename B, int N_FRAMES>
@@ -350,11 +343,7 @@ void
 xo0_inter_intra<B, 0, N_FRAMES>::apply(const B* __restrict s_b, B* __restrict s_c, const int n_elmts)
 {
     const auto _n_elmts = n_elmts * N_FRAMES;
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + _n_elmts, stdext::checked_array_iterator<B*>(s_c, _n_elmts));
-#else
     std::copy(s_b, s_b + _n_elmts, s_c);
-#endif
 }
 
 }

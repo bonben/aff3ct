@@ -4,9 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#ifdef _MSC_VER
-#include <iterator>
-#endif
+
 #include <mipp.h>
 #include <streampu.hpp>
 
@@ -906,11 +904,7 @@ xo0_inter_8bit_bitpacking<B, N_ELMTS>::apply(const B* __restrict s_b,
                                              const int /*n_elmts*/)
 {
     constexpr auto _n_elmts = (N_ELMTS * mipp::nElReg<B>()) / (sizeof(B) * 8);
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + _n_elmts, stdext::checked_array_iterator<B*>(s_c, _n_elmts));
-#else
     std::copy(s_b, s_b + _n_elmts, s_c);
-#endif
 }
 
 template<typename B>
@@ -921,11 +915,7 @@ xo0_inter_8bit_bitpacking<B, 0>::apply(const B* __restrict s_b,
                                        const int n_elmts)
 {
     const auto _n_elmts = (n_elmts * mipp::nElReg<B>()) / (sizeof(B) * 8);
-#ifdef _MSC_VER
-    std::copy(s_b, s_b + _n_elmts, stdext::checked_array_iterator<B*>(s_c, _n_elmts));
-#else
     std::copy(s_b, s_b + _n_elmts, s_c);
-#endif
 }
 
 template<typename B>
