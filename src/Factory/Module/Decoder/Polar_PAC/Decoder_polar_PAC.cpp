@@ -129,6 +129,7 @@ aff3ct::factory::Decoder_polar_PAC::build<B_64, Q_64>(const std::vector<bool>&,
 #else
 template aff3ct::module::Decoder_SIHO<B, Q>*
 aff3ct::factory::Decoder_polar_PAC::build<B, Q>(const std::vector<bool>&,
+                                                const std::vector<double>&,
                                                 const module::CRC<B>*,
                                                 module::Encoder<B>*) const;
 #endif
