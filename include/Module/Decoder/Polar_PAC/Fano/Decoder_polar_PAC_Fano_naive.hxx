@@ -689,7 +689,7 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::BACK(std::vector<double>& r_values,
                                                double T,
                                                std::vector<uint8_t>& kappa)
 {
-    double mu;
+    double mu = 0;
     while (true)
     {
         if (j == -1)
