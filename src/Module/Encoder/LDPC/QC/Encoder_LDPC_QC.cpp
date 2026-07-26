@@ -6,10 +6,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include "Tools/Exception/exception.hpp"
 
 #include "Module/Encoder/LDPC/QC/Encoder_LDPC_QC.hpp"
