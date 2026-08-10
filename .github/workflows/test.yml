@@ -75,7 +75,10 @@ jobs:
   # ============================================================================
   check-schedule:
     if: github.event_name == 'schedule'
-    runs-on: [self-hosted, imt-atlantique]
+    # Deliberately NOT self-hosted: the other jobs of this workflow run inside a
+    # container as root and leave root-owned files in the runner workspace, which
+    # makes actions/checkout fail with EACCES here. This job only needs `git log`.
+    runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
