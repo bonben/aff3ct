@@ -36,13 +36,7 @@ jobs:
           fetch-tags: true
           submodules: false
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
       - name: Generate Documentation
         run: |
           export THREADS="4"
@@ -76,13 +70,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - uses: actions/download-artifact@v4
         with:
@@ -146,13 +134,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Build
         run: |
@@ -194,13 +176,7 @@ jobs:
 
       - name: Update submodules with fallback
         shell: bash
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -253,13 +229,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Build
         run: |
@@ -421,6 +391,30 @@ jobs:
           else
             echo "Entry for hash $GIT_HASH already exists in $CSV_FILE."
           fi
+
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop'. On PRs/branches the deploy jobs run as
+  # dry-runs (no external publish); this job makes them blocking so packaging
+  # breakage is caught before merge, while tolerating jobs skipped by design.
+  deploy-all-green:
+    name: deploy-all-green
+    needs: [build-doc, deploy-ppa, build-deploy-linux, build-deploy-windows, build-deploy-macos, deploy-binaries]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required deploy jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required deploy job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required deploy jobs passed (skipped jobs are tolerated)."
 
   # ============================================================================
   # PENDING
