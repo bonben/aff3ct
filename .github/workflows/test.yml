@@ -356,3 +356,37 @@ jobs:
         with:
           name: code-coverage-report
           path: code_coverage_report
+
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop'. It waits for the whole self-hosted
+  # regression/coverage chain, so an external PR stays blocked while
+  # 'authorize-external-pr' is pending admin approval. Jobs skipped by design
+  # (authorize-external-pr on internal PRs, check-schedule off-cron) are
+  # tolerated; a genuine failure or cancellation blocks the merge.
+  test-all-green:
+    name: test-all-green
+    needs:
+      - check-pr-permission
+      - authorize-external-pr
+      - check-schedule
+      - build-regression
+      - test-regression
+      - build-coverage
+      - test-coverage
+      - report-coverage
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required test jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required test job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required test jobs passed (skipped jobs are tolerated)."

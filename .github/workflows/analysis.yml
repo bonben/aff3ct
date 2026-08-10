@@ -166,3 +166,28 @@ jobs:
           path: |
             doc/build/html
             doc/build/doxygen
+
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop' instead of each job/matrix leaf above.
+  # It stays green when jobs are skipped (e.g. git-submodules on PRs) and fails
+  # only when a job actually failed or was cancelled, so the analysis matrix can
+  # change without touching the branch-protection required-checks list.
+  analysis-all-green:
+    name: analysis-all-green
+    needs: [headers, cppcheck, clang-format, clang, git-submodules, documentation]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required analysis jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required analysis job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required analysis jobs passed (skipped jobs are tolerated)."
