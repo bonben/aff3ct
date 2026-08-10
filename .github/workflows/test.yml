@@ -123,13 +123,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Build Regression Binaries
         run: |
@@ -176,13 +170,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - uses: actions/download-artifact@v4
         with:
@@ -238,13 +226,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Build Coverage Binaries
         run: |
@@ -291,13 +273,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - uses: actions/download-artifact@v4
         with:
@@ -329,13 +305,7 @@ jobs:
           submodules: false
 
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - uses: actions/download-artifact@v4
         with:
