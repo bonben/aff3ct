@@ -102,13 +102,7 @@ jobs:
           submodules: false
       
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Prepare environment
         run: apt-get update || true; apt-get install -y pkg-config
@@ -145,13 +139,7 @@ jobs:
           
       - name: Update submodules with fallback
         shell: bash
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Install vcpkg dependencies
         shell: pwsh
@@ -192,13 +180,7 @@ jobs:
           submodules: false
           
       - name: Update submodules with fallback
-        run: |
-          git config --global --add safe.directory '*'
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
 
       - name: Build macOS
         run: |
@@ -210,4 +192,28 @@ jobs:
           name: build-macos-${{ matrix.compiler }}
           path: ${{ env.NAME }}
           retention-days: 7
+
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop' instead of each build-matrix leaf above.
+  # It fails only when a build job failed or was cancelled, so compilers can be
+  # added/removed/renamed in the matrix without touching branch protection.
+  build-all-green:
+    name: build-all-green
+    needs: [build-linux, build-windows, build-macos]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required build jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required build job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required build jobs passed (skipped jobs are tolerated)."
 
