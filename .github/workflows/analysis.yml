@@ -93,12 +93,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-clang-ccache-
       - name: Update submodules with fallback
-        run: |
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
       - name: Run analysis clang
         run: |
           apt-get update && apt-get install -y ccache
@@ -124,12 +119,7 @@ jobs:
           fetch-tags: true
           submodules: false
       - name: Update submodules with fallback
-        run: |
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
       - name: Run git submodule check
         run: |
           source ./ci/tools/git-branch.sh
