@@ -93,12 +93,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-clang-ccache-
       - name: Update submodules with fallback
-        run: |
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
       - name: Run analysis clang
         run: |
           apt-get update && apt-get install -y ccache
@@ -114,7 +109,13 @@ jobs:
           path: clang_reports/
 
   git-submodules:
-    if: github.ref_name == 'master' || github.ref_name == 'develop'
+    # Also runs on pull requests: catching a submodule pinned to an unmerged
+    # commit *before* it lands is the whole point. Branch pushes are left out,
+    # a work-in-progress branch is allowed to point at anything.
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.ref_name == 'master' ||
+      github.ref_name == 'develop'
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_git:v2.25.1
     steps:
@@ -124,16 +125,9 @@ jobs:
           fetch-tags: true
           submodules: false
       - name: Update submodules with fallback
-        run: |
-          if ! git submodule update --init --recursive; then
-            echo "Failed to find submodules on ${{ github.repository_owner }}. Falling back to upstream aff3ct..."
-            git config --global url."https://github.com/aff3ct/".insteadOf "https://github.com/${{ github.repository_owner }}/"
-            git submodule update --init --recursive
-          fi
+        run: ./ci/tools/update-submodules.sh
       - name: Run git submodule check
-        run: |
-          source ./ci/tools/git-branch.sh
-          ./ci/analysis-git-submodule.sh
+        run: ./ci/analysis-git-submodule.sh
 
   documentation:
     runs-on: ubuntu-latest
@@ -166,3 +160,28 @@ jobs:
           path: |
             doc/build/html
             doc/build/doxygen
+
+  # ============================================================================
+  # ALL-GREEN (single stable required status check for branch protection)
+  # ============================================================================
+  # Require only this job on 'develop' instead of each job/matrix leaf above.
+  # It stays green when jobs are skipped (e.g. git-submodules on PRs) and fails
+  # only when a job actually failed or was cancelled, so the analysis matrix can
+  # change without touching the branch-protection required-checks list.
+  analysis-all-green:
+    name: analysis-all-green
+    needs: [headers, cppcheck, clang-format, clang, git-submodules, documentation]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required analysis jobs succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required analysis job did not succeed (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required analysis jobs passed (skipped jobs are tolerated)."
