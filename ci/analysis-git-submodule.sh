@@ -16,9 +16,14 @@
 # Each submodule is compared against its *own* default branch, as advertised by
 # its remote: streampu, conf and refs use 'develop', MIPP and cli use 'master'.
 # Do not assume the branch name matches the one being built here.
+#
+# Usage: analysis-git-submodule.sh [superproject path]
+# The optional argument exists so the test suite can point the check at a
+# throwaway superproject; the CI calls it without arguments.
 
 set -u
 
+cd "${1:-.}" || exit 1
 WD=$(pwd)
 FAILED=0
 
@@ -35,19 +40,31 @@ while read -r KEY PATH_SUB; do
             ;;
     esac
 
-    cd "${WD}/${PATH_SUB}" || { echo "== ${PATH_SUB}: not initialized"; FAILED=1; continue; }
+    cd "${WD}/${PATH_SUB}" 2>/dev/null || {
+        echo "== ${PATH_SUB}: FAILED, submodule is not initialized"
+        FAILED=1
+        cd "$WD" || exit 1
+        continue
+    }
 
     SHA=$(git rev-parse HEAD)
-    BRANCH=$(git ls-remote --symref origin HEAD | awk '/^ref:/ {sub("refs/heads/", "", $2); print $2; exit}')
+    BRANCH=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/ {sub("refs/heads/", "", $2); print $2; exit}')
 
+    # A network or permission problem must not be reported as an invalid pin:
+    # the contributor would be blamed for something entirely on our side.
     if [ -z "$BRANCH" ]; then
-        echo "== ${PATH_SUB}: unable to determine the default branch of ${URL}"
+        echo "== ${PATH_SUB}: FAILED, cannot reach '${URL}' to read its default branch"
         FAILED=1
-        cd "$WD"
+        cd "$WD" || exit 1
         continue
     fi
 
-    git fetch --quiet origin "$BRANCH"
+    if ! git fetch --quiet origin "$BRANCH"; then
+        echo "== ${PATH_SUB}: FAILED, cannot fetch '${BRANCH}' from '${URL}'"
+        FAILED=1
+        cd "$WD" || exit 1
+        continue
+    fi
 
     if git merge-base --is-ancestor "$SHA" FETCH_HEAD; then
         echo "== ${PATH_SUB}: OK (${SHA:0:10} is in '${BRANCH}')"
@@ -62,7 +79,7 @@ while read -r KEY PATH_SUB; do
         FAILED=1
     fi
 
-    cd "$WD"
+    cd "$WD" || exit 1
 done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$')
 
 exit $FAILED

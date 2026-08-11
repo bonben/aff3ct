@@ -126,6 +126,11 @@ jobs:
           submodules: false
       - name: Update submodules with fallback
         run: ./ci/tools/update-submodules.sh
+      # Runs first: if the check itself is broken, we want to know that rather
+      # than to trust whatever verdict it gives on the real submodules.
+      - name: Test the git submodule check
+        run: ./ci/tests/test-analysis-git-submodule.sh
+
       - name: Run git submodule check
         run: ./ci/analysis-git-submodule.sh
 
