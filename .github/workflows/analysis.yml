@@ -109,7 +109,13 @@ jobs:
           path: clang_reports/
 
   git-submodules:
-    if: github.ref_name == 'master' || github.ref_name == 'develop'
+    # Also runs on pull requests: catching a submodule pinned to an unmerged
+    # commit *before* it lands is the whole point. Branch pushes are left out,
+    # a work-in-progress branch is allowed to point at anything.
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.ref_name == 'master' ||
+      github.ref_name == 'develop'
     runs-on: ubuntu-latest
     container: registry.gitlab.com/aff3ct/aff3ct/x86_64_ubuntu_git:v2.25.1
     steps:
@@ -121,9 +127,7 @@ jobs:
       - name: Update submodules with fallback
         run: ./ci/tools/update-submodules.sh
       - name: Run git submodule check
-        run: |
-          source ./ci/tools/git-branch.sh
-          ./ci/analysis-git-submodule.sh
+        run: ./ci/analysis-git-submodule.sh
 
   documentation:
     runs-on: ubuntu-latest
