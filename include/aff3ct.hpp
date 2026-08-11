@@ -879,9 +879,6 @@
 #ifndef PRNG_MT19937_SIMD_HPP
 #include <Tools/Algo/PRNG/PRNG_MT19937_simd.hpp>
 #endif
-#ifndef BITONIC_SORTER_AVX2_HPP
-#include <Tools/Algo/Sort/Bitonic_sorter_avx2.hpp>
-#endif
 #ifndef LC_SORTER_HPP
 #include <Tools/Algo/Sort/LC_sorter.hpp>
 #endif
