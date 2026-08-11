@@ -16,14 +16,9 @@
 # Each submodule is compared against its *own* default branch, as advertised by
 # its remote: streampu, conf and refs use 'develop', MIPP and cli use 'master'.
 # Do not assume the branch name matches the one being built here.
-#
-# Usage: analysis-git-submodule.sh [superproject path]
-# The optional argument exists so the test suite can point the check at a
-# throwaway superproject; the CI calls it without arguments.
 
 set -u
 
-cd "${1:-.}" || exit 1
 WD=$(pwd)
 FAILED=0
 
