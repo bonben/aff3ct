@@ -269,8 +269,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode(const size_t frame_id)
         {
             auto min_phi = std::numeric_limits<R>::max();
             cur_leaf->get_c()->v[0] = 0;
-            /*std::cout << cur_leaf->get_c()->v.size() << ", " <<
-             * cur_leaf->get_c()->s.size() << std::endl;*/
             std::pair<B, std::vector<B>> res = conv1bitEnc((B)0, cState);
 
             cur_leaf->get_c()->s[0] = res.first ? spu::tools::bit_init<B>() : 0;
@@ -278,23 +276,16 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode(const size_t frame_id)
 
             this->propagate_sums(cur_leaf);
 
-            // auto phi_cur =
-            //   tools::phi<R>(polar_trees.get_path_metric(), cur_leaf->get_c()->lambda[0], cur_leaf->get_c()->s[0]);
-            // this->polar_trees.set_path_metric(phi_cur);
-
             double cur_llr = cur_leaf->get_c()->lambda[0];
             if (i == 0)
             {
                 mus[i] = this->actual_metric_cal(cur_llr, res.first ? 1 : 0) + expected_metric;
-                // mus[i] = phi_cur + expected_metric;
             }
             else
             {
                 mus[i] = mus[i - 1] + this->actual_metric_cal(cur_llr, res.first ? 1 : 0);
-                // mus[i] = phi_cur;
             }
 
-            // this->polar_trees.set_path_metric(mus[i]);
             mus[i] = mus[i] - temp_metric;
             i++;
         }
@@ -370,13 +361,9 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode(const size_t frame_id)
                 {
                     if (mu_min > threshold)
                     {
-                        // u_matrix[n][i] = ucaps[v_min];
                         cur_leaf->get_c()->s[0] = ucaps[v_min] ? spu::tools::bit_init<B>() : 0;
-                        // vis[i] = (uint8_t)v_min;
                         cur_leaf->get_c()->v[0] = (B)v_min;
-                        // updatepartialsum(u_matrix, n, i);
                         this->propagate_sums(cur_leaf);
-                        // updatepartialsum(u_matrix, n, i);
                         betas[j + 1] = mu_min;
                         kappa[j + 1] = 1;
                         mus[i] = mu_min;
@@ -397,8 +384,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode(const size_t frame_id)
                         {
                             int jp = j;
                             std::vector<B> csp = cState;
-                            // BACK is to be called here ... with return arugment T,j,B
-                            // std::cout << "back0_before:" << j << "\n";
 
                             this->BACK(r_values, betas, j, threshold, kappa);
                             threshold = r_values[0];
@@ -422,16 +407,14 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode(const size_t frame_id)
             {
                 if (j == -1)
                 {
-                    // here
                     threshold -= DELTA;
                 }
                 else if (j != -1)
                 {
-                    // here
                     int jp = j;
                     std::vector<B> csp = cState;
-                    // BACK is to be called here with return argurment in order T,j,B
 
+                    // BACK is to be called here with return argurment in order T,j,B
                     this->BACK(r_values, betas, j, threshold, kappa);
 
                     threshold = r_values[0];
@@ -471,7 +454,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode_siho(const R* Y_N, B* V_K, con
     this->_decode(frame_id);
     // auto d_decod = std::chrono::steady_clock::now() - t_decod;
     // auto rvalue = std::chrono::duration_cast<std::chrono::milliseconds>(d_decod).count();
-    // std::cout << "The time taken: " << rvalue << std::endl;
 
     //	auto t_store = std::chrono::steady_clock::now(); //
     //---------------------------------------------------------
@@ -485,12 +467,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_decode_siho(const R* Y_N, B* V_K, con
     // (*this)[dec::tsk::decode_siho].update_timer((size_t)dec::tm::decode_siho::decode, d_decod);
     //	(*this)[dec::tsk::decode_siho].update_timer(dec::tm::decode_siho::store,
     // d_store);
-    //
-    // for (int i = 0; i < this->K; i++)
-    // {
-    //     std::cout << V_K[i] << ",";
-    // }
-    // std::cout << std::endl;
 
     return 0;
 }
@@ -534,7 +510,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::_store(B* V, bool coded) const
     auto* root = (tools::Binary_node<Contents_PAC_Fano<B, R>>*)this->polar_trees.get_root();
     if (!coded)
     {
-        /*std::cout << "coded Inside the store\n";*/
         auto k = 0;
         this->recursive_store(root, V, k);
     }
@@ -606,7 +581,6 @@ Decoder_polar_PAC_Fano_naive<B, R, F, G>::recursive_store(const tools::Binary_no
                                                           B* V_K,
                                                           int& k) const
 {
-    /*std::cout << "Inside the: " << __func__ << std::endl;*/
     auto* contents = node_curr->get_contents();
 
     if (!node_curr->is_leaf()) // stop condition

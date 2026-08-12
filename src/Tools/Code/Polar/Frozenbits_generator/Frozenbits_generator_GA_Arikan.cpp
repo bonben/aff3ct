@@ -1,7 +1,7 @@
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
-#include "Tools/general_utils.h"
 #endif
+#include "Tools/general_utils.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -55,7 +55,6 @@ Frozenbits_generator_GA_Arikan::generate_error_probability(std::vector<double>& 
         double T = z[i];
         P_err[i] = 0.5 * std::erfc(0.5 * std::sqrt(T));
     }
-    // std::copy(this->z.begin(), this->z.end(), P_err.begin());
 }
 
 void
