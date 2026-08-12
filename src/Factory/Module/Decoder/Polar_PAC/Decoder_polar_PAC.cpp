@@ -80,7 +80,7 @@ Decoder_polar_PAC ::get_headers(std::map<std::string, tools::header_list>& heade
         if (this->type == "FANO")
         {
             headers[p].push_back(std::make_pair("Delta", std::to_string(this->DELTA)));
-            headers[p].push_back(std::make_pair("Error Probablity SNR", std::to_string(this->p_err_snr)));
+            headers[p].push_back(std::make_pair("Error Probability SNR", std::to_string(this->p_err_snr)));
         }
     }
 }

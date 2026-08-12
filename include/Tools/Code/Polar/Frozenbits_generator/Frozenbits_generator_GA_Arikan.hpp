@@ -44,9 +44,8 @@ class Frozenbits_generator_GA_Arikan : public Frozenbits_generator
 
     virtual Frozenbits_generator_GA_Arikan* clone() const;
     /*!
-     * \brief Gets the error porbability for the each bit channel.
+     * \brief Gets the error probability for the each bit channel.
      *
-     * \return a vector of the error porbability of bit channels.
      */
     void generate_error_probability(std::vector<double>& P_err, double _snr);
 
