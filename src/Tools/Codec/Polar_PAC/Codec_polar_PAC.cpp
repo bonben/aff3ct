@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <exception>
+#include <memory>
 #include <sstream>
 #include <streampu.hpp>
 
@@ -51,8 +52,8 @@ Codec_polar_PAC<B, Q>::Codec_polar_PAC(const factory::Frozenbits_generator& fb_p
 
     if (dec_params.type == "FANO")
     {
-        Frozenbits_generator_GA_Arikan* p_err_gen =
-          new Frozenbits_generator_GA_Arikan(enc_params.K, enc_params.N_cw, fb_params.dump_channels_path);
+        std::unique_ptr<Frozenbits_generator_GA_Arikan> p_err_gen = std::unique_ptr<Frozenbits_generator_GA_Arikan>(
+          new Frozenbits_generator_GA_Arikan(enc_params.K, enc_params.N_cw, fb_params.dump_channels_path));
         p_err_gen->generate_error_probability(*this->Perr, (double)dec_params.p_err_snr);
     }
     // ---------------------------------------------------------------------------------------------------- allocations
