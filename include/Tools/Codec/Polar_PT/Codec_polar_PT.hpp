@@ -32,11 +32,9 @@ class Codec_polar_PT
   , public Interface_get_set_dynamic_frozen_bits
 {
   protected:
-    const bool adaptive_fb;
     std::shared_ptr<std::vector<bool>> frozen_bits; // known bits (alias frozen bits) are set to true
     std::shared_ptr<std::vector<bool>> dynamic_frozen_bits;
     std::shared_ptr<std::map<uint32_t, std::vector<uint32_t>>> preTransform;
-    const bool generated_decoder;
 
     std::shared_ptr<Frozenbits_generator> fb_generator;
     std::shared_ptr<Pretransform_generator> pt_generator;
@@ -64,19 +62,15 @@ class Codec_polar_PT
     const std::map<uint32_t, std::vector<uint32_t>>& get_pretransform() const;
     const std::vector<bool>& get_dynamic_frozen_bits() const;
 
-    bool is_adaptive_frozen_bits() const;
-    bool is_generated_decoder() const;
     const Frozenbits_generator& get_frozen_bits_generator() const;
     const Pretransform_generator& get_pretransform_generator() const;
 
     void set_frozen_bits(const std::vector<bool>& frozen_bits);
     void set_pretransform(const std::map<uint32_t, std::vector<uint32_t>>& pretransform);
     void set_dynamic_frozen_bits(const std::vector<bool>& dfb);
-    virtual void notify_noise_update();
 
   protected:
     virtual void deep_copy(const Codec_polar_PT<B, Q>& t);
-    void check_noise();
 };
 }
 }
