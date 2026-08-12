@@ -17,7 +17,7 @@ Codec_polar_PT ::Codec_polar_PT(const std::string& prefix)
 
     fbg = new Frozenbits_generator(enc->get_prefix() + "-fb");
     ptg = new Pretransform_generator(enc->get_prefix() + "-pt");
-    fbg->type = "RM";   // set RM frozen bit by default in Polar PT
+    fbg->type = "FILE"; // set FILE frozen bit by default in Polar PT
     ptg->type = "FILE"; // set the PT generator from file
 }
 
@@ -51,12 +51,6 @@ Codec_polar_PT ::get_names() const
         }
     }
 
-    // if (fbg != nullptr)
-    // {
-    //     auto nn = fbg->get_names();
-    //     for (auto& x : nn)
-    //         n.push_back(x);
-    // }
     return n2;
 }
 
@@ -84,12 +78,6 @@ Codec_polar_PT ::get_short_names() const
         }
     }
 
-    // if (fbg != nullptr)
-    // {
-    //     auto nn = fbg->get_short_names();
-    //     for (auto& x : nn)
-    //         sn.push_back(x);
-    // }
     return sn2;
 }
 
@@ -117,12 +105,6 @@ Codec_polar_PT ::get_prefixes() const
         }
     }
 
-    // if (fbg != nullptr)
-    // {
-    //     auto nn = fbg->get_prefixes();
-    //     for (auto& x : nn)
-    //         p.push_back(x);
-    // }
     return p2;
 }
 
