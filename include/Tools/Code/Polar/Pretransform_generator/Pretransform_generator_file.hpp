@@ -32,11 +32,9 @@ class Pretransform_generator_file : public Pretransform_generator
 
   protected:
     void evaluate();
-    bool load_channels_file(const std::string& filename, std::vector<uint32_t>& best_channels);
     bool load_pretransform_file(const std::string& filename,
                                 std::map<uint32_t, std::vector<uint32_t>>& pretransform,
                                 std::vector<uint32_t>& info_bits_loc);
-    virtual void check_noise();
 };
 }
 }
