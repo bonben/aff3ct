@@ -30,6 +30,10 @@ class Decoder_polar_PAC : public Decoder
     // optional parameters
     std::string conv = "NO";
     int L = 8;
+    // this controls the complexity of the Fano deocoding. Should be adjusted accordingly.
+    float DELTA = 1.0f;
+    // this is set only to reproduce the Arikan's (128, 64) PAC code curve.
+    float p_err_snr = 2.35;
 
     // -------------------------------------------------------------------------------------------------------- METHODS
     explicit Decoder_polar_PAC(const std::string& p = Decoder_polar_PAC_prefix);
@@ -44,6 +48,7 @@ class Decoder_polar_PAC : public Decoder
     // builder
     template<typename B = int, typename Q = float>
     module::Decoder_SIHO<B, Q>* build(const std::vector<bool>& frozen_bits,
+                                      const std::vector<double>& Perr,
                                       const module::CRC<B>* crc = nullptr,
                                       module::Encoder<B>* encoder = nullptr) const;
 
