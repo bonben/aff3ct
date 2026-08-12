@@ -71,10 +71,17 @@ Encoder_polar_PT<B>::preTransform(const B* U_K, B* X_N)
             X_N[i] = (B)0;
             if (this->dynamic_frozen_bits[i])
             {
-                for (const auto& indx : this->pre_transform[i])
+                auto it = this->pre_transform.find((uint32_t)i);
+
+                if (it == this->pre_transform.end())
+                {
+                    std::stringstream message;
+                    message << "Missing pre-transform for dynamically frozen bit ('i' = " << i << ").";
+                    throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+                }
+                for (const auto& indx : it->second)
                 {
                     X_N[i] = X_N[i] ^ U_K[indx];
-                    // std::cout << "indx: " << indx << "," << std::endl;
                 }
             }
         }
