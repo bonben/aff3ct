@@ -35,47 +35,6 @@ Pretransform_generator_file::evaluate()
 }
 
 bool
-Pretransform_generator_file::load_channels_file(const std::string& filename, std::vector<uint32_t>& best_channels)
-{
-    std::ifstream in_code(filename.c_str());
-
-    if (in_code.is_open())
-    {
-        std::string trash;
-        in_code >> trash; // N
-
-        try
-        {
-            std::stoi(trash);
-        }
-        catch (std::exception&)
-        {
-            std::stringstream message;
-            message << "'std::stoi' did not work, something went wrong when reading the file.";
-            throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
-        }
-
-        if ((size_t)std::stoi(trash) != best_channels.size())
-        {
-            std::stringstream message;
-            message << "'trash' has to be equal to 'N' ('trash' = " << trash << ", 'N' = " << this->N << ").";
-            throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
-        }
-
-        in_code >> trash; // type
-        in_code >> trash; // sigma
-
-        for (unsigned i = 0; i < best_channels.size(); i++)
-            in_code >> best_channels[i];
-
-        in_code.close();
-        return true;
-    }
-    else
-        return false;
-}
-
-bool
 Pretransform_generator_file::load_pretransform_file(const std::string& filename,
                                                     std::map<uint32_t, std::vector<uint32_t>>& pretransform,
                                                     std::vector<uint32_t>& info_bits_loc)
@@ -144,10 +103,4 @@ Pretransform_generator_file::load_pretransform_file(const std::string& filename,
     }
     else
         return false;
-}
-
-void
-Pretransform_generator_file::check_noise()
-{
-    Pretransform_generator::check_noise();
 }
