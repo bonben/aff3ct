@@ -15,10 +15,7 @@ Encoder_polar_PAC<B>::Encoder_polar_PAC(const int& K,
                                         const int& N,
                                         const std::vector<bool>& frozen_bits,
                                         const std::string& conv)
-  : Encoder<B>(K, N)
-  , m((int)std::log2(N))
-  , frozen_bits(frozen_bits)
-  , X_N_tmp(this->N)
+  : Encoder_polar<B>(K, N, frozen_bits)
 {
     const std::string name = "Encoder_polar_PAC";
     this->set_name(name);
@@ -35,13 +32,6 @@ Encoder_polar_PAC<B>::Encoder_polar_PAC(const int& K,
         throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
     }
 
-    this->set_frozen_bits(frozen_bits);
-
-    // conv_reg = { (B)1, (B)0, (B)1, (B)1, (B)0, (B)1, (B)1 };
-
-    // std::copy(conv.begin(), conv.end(), conv_reg.begin());
-    // conv_reg = { (B)1, (B)0, (B)0, (B)0, (B)0, (B)0, (B)0 };
-    // std::cout << "Encoder conv: " << conv << std::endl;
     if (conv == "NO")
     {
         std::stringstream message;
@@ -69,16 +59,7 @@ Encoder_polar_PAC<B>::Encoder_polar_PAC(const int& K,
         conv_reg.push_back(a);
     }
 
-    // std::cout << "Inside the encoder conv_reg: " << conv_reg.size() << " ";
-    // for (int i = 0; i < conv_reg.size(); i++)
-    // {
-    //     std::cout << (int)conv_reg[i] << ",";
-    // }
-    // std::cout << std::endl;
-
     curState.resize(conv_reg.size() - 1);
-
-    // std::cout << "Inside the Encoder_polar_PAC constructor: " << conv_reg.size() << std::endl;
 }
 
 template<typename B>
@@ -94,20 +75,9 @@ template<typename B>
 void
 Encoder_polar_PAC<B>::_encode(const B* U_K, B* X_N, const size_t /*frame_id*/)
 {
-    /*std::cout << "Info bits positions: \n";*/
-    /*std::cout << "Frozen bits: " << frozen_bits.size() << std::endl;*/
-    /*for (int i = 0; i < this->N; i++)*/
-    /*{*/
-    /*    std::cout << ((frozen_bits[i]) ? (B)0 : i) << ",";*/
-    /*}*/
-    /*std::cout << std::endl;*/
 
     this->convert(U_K, X_N);
     this->convEnc(X_N);
-    /*std::cout << "intermediate codeword: ";*/
-    /*for (int i = 0; i < this->N; i++)*/
-    /*    std::cout << X_N[i] << " ";*/
-    /*std::cout << std::endl;*/
     this->light_encode(X_N);
 }
 
@@ -135,59 +105,15 @@ template<typename B>
 void
 Encoder_polar_PAC<B>::convEnc(B* X_N)
 {
-    /*std::cout << "Inside the conv encoder function \n";*/
 
     std::vector<uint8_t> cState(conv_reg.size() - 1, 0);
     std::vector<uint8_t> u(this->N, 0);
     std::fill(curState.begin(), curState.end(), 0);
 
-    /*std::cout << "Original: [";*/
     for (int i = 0; i < this->N; ++i)
     {
-        /*std::cout << X_N[i] << ",";*/
         X_N[i] = conv1bitEnc(X_N[i]);
     }
-    /*std::cout << "]" << std::endl << "Encoded: [";*/
-    /*for (int i = 0; i < this->N; i++)*/
-    /*{*/
-    /*    std::cout << X_N[i] << ",";*/
-    /*}*/
-    /*std::cout << "]" << std::endl;*/
-}
-
-template<typename B>
-void
-Encoder_polar_PAC<B>::light_encode(B* bits)
-{
-    for (auto k = (this->N >> 1); k > 0; k >>= 1)
-        for (auto j = 0; j < this->N; j += 2 * k)
-            for (auto i = 0; i < k; i++)
-                bits[j + i] = bits[j + i] ^ bits[k + j + i];
-}
-
-template<typename B>
-void
-Encoder_polar_PAC<B>::convert(const B* U_K, B* U_N)
-{
-    if (U_K == U_N)
-    {
-        std::vector<B> U_K_tmp(this->K);
-        std::copy(U_K, U_K + this->K, U_K_tmp.begin());
-
-        auto j = 0;
-        for (unsigned i = 0; i < frozen_bits.size(); i++)
-            U_N[i] = (frozen_bits[i]) ? (B)0 : U_K_tmp[j++];
-    }
-    else
-    {
-        auto j = 0;
-        for (unsigned i = 0; i < frozen_bits.size(); i++)
-            U_N[i] = (frozen_bits[i]) ? (B)0 : U_K[j++];
-    }
-    /*for (int i = 0; i < this->N; i++)*/
-    /*{*/
-    /*    std::cout << ((frozen_bits[i]) ? (B)0 : i) << ",";*/
-    /*}*/
 }
 
 template<typename B>
@@ -208,23 +134,6 @@ Encoder_polar_PAC<B>::is_codeword(const B* X_N)
     return true;
 }
 
-template<typename B>
-void
-Encoder_polar_PAC<B>::set_frozen_bits(const std::vector<bool>& frozen_bits)
-{
-    aff3ct::tools::fb_assert(frozen_bits, this->K, this->N);
-    std::copy(frozen_bits.begin(), frozen_bits.end(), this->frozen_bits.begin());
-    auto k = 0;
-    for (auto n = 0; n < this->N; n++)
-        if (!this->frozen_bits[n]) this->info_bits_pos[k++] = n;
-}
-
-template<typename B>
-const std::vector<bool>&
-Encoder_polar_PAC<B>::get_frozen_bits() const
-{
-    return this->frozen_bits;
-}
 // ====================================================================================
 // explicit template instantiation
 #include "Tools/types.h"

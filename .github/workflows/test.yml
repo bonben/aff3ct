@@ -159,6 +159,7 @@ jobs:
           - { CODE: TURBO_DB,   RESULT: turbo-db }
           - { CODE: TURBO_PROD, RESULT: turbo-prod }
           - { CODE: UNCODED,    RESULT: uncoded }
+          - { CODE: POLAR_PT,  RESULT: polar-pt }
     env:
       CODE: ${{ matrix.CODE }}
       RESULT: ${{ matrix.RESULT }}
@@ -265,6 +266,7 @@ jobs:
           - { CODE: TURBO_DB,   RESULT: turbo-db }
           - { CODE: TURBO_PROD, RESULT: turbo-prod }
           - { CODE: UNCODED,    RESULT: uncoded }
+          - { CODE: POLAR_PT,    RESULT: polar-pt }
     steps:
       - uses: actions/checkout@v4
         with:

@@ -15,6 +15,7 @@
 #include "Launcher/Code/Polar/Polar.hpp"
 #include "Launcher/Code/Polar_MK/Polar_MK.hpp"
 #include "Launcher/Code/Polar_PAC/Polar_PAC.hpp"
+#include "Launcher/Code/Polar_PT/Polar_PT.hpp"
 #include "Launcher/Code/RA/RA.hpp"
 #include "Launcher/Code/RS/RS.hpp"
 #include "Launcher/Code/RSC/RSC.hpp"
@@ -66,6 +67,7 @@ Launcher ::get_description(cli::Argument_map_info& args) const
                    cli::Text(cli::Including_set("POLAR",
                                                 "POLAR_MK",
                                                 "POLAR_PAC",
+                                                "POLAR_PT",
                                                 "TURBO",
                                                 "TURBO_DB",
                                                 "TPC",
@@ -240,6 +242,11 @@ Launcher ::build(const int argc, const char** argv) const
     if (this->cde_type == "POLAR_PAC")
     {
         if (this->sim_type == "BFER") return new launcher::Polar_PAC<launcher::BFER_std<B, R, Q>, B, R, Q>(argc, argv);
+    }
+
+    if (this->cde_type == "POLAR_PT")
+    {
+        if (this->sim_type == "BFER") return new launcher::Polar_PT<launcher::BFER_std<B, R, Q>, B, R, Q>(argc, argv);
     }
 
     if (this->cde_type == "RSC")
