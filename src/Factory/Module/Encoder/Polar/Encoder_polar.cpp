@@ -2,9 +2,9 @@
 
 #include "Factory/Module/Encoder/Polar/Encoder_polar.hpp"
 #include "Module/Encoder/Polar/Encoder_polar.hpp"
-#include "Module/Encoder/Polar/Encoder_polar_sys.hpp"
 #include "Module/Encoder/Polar/Encoder_polar_bitpacked.hpp"
 #include "Module/Encoder/Polar/Encoder_polar_bitpacked_sys.hpp"
+#include "Module/Encoder/Polar/Encoder_polar_sys.hpp"
 #include "Tools/Documentation/documentation.h"
 
 using namespace aff3ct;

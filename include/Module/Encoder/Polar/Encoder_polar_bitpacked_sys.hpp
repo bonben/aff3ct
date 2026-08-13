@@ -16,13 +16,13 @@ namespace module
 template<typename B = int>
 class Encoder_polar_bitpacked_sys : public Encoder_polar_bitpacked<B>
 {
-public:
+  public:
     Encoder_polar_bitpacked_sys(const int& K, const int& N, const std::vector<bool>& frozen_bits);
     virtual ~Encoder_polar_bitpacked_sys() = default;
 
     virtual Encoder_polar_bitpacked_sys<B>* clone() const;
 
-protected:
+  protected:
     virtual void _encode(const B* U_K, B* X_N, const size_t frame_id);
 };
 }
