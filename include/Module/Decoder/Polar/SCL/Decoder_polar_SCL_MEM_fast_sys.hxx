@@ -683,13 +683,26 @@ Decoder_polar_SCL_MEM_fast_sys<B, R, API_polar>::select_least_reliable(const R* 
     // amount of inlined compare-exchanges reasonable.
     switch (n_elmts)
     {
-        case 4:   sorter_net.template partial_sort_abs_template<K, 4>(llrs, best_idx);   return true;
-        case 8:   sorter_net.template partial_sort_abs_template<K, 8>(llrs, best_idx);   return true;
-        case 16:  sorter_net.template partial_sort_abs_template<K, 16>(llrs, best_idx);  return true;
-        case 32:  sorter_net.template partial_sort_abs_template<K, 32>(llrs, best_idx);  return true;
-        case 64:  sorter_net.template partial_sort_abs_template<K, 64>(llrs, best_idx);  return true;
-        case 128: sorter_net.template partial_sort_abs_template<K, 128>(llrs, best_idx); return true;
-        default:  return false;
+        case 4:
+            sorter_net.template partial_sort_abs_template<K, 4>(llrs, best_idx);
+            return true;
+        case 8:
+            sorter_net.template partial_sort_abs_template<K, 8>(llrs, best_idx);
+            return true;
+        case 16:
+            sorter_net.template partial_sort_abs_template<K, 16>(llrs, best_idx);
+            return true;
+        case 32:
+            sorter_net.template partial_sort_abs_template<K, 32>(llrs, best_idx);
+            return true;
+        case 64:
+            sorter_net.template partial_sort_abs_template<K, 64>(llrs, best_idx);
+            return true;
+        case 128:
+            sorter_net.template partial_sort_abs_template<K, 128>(llrs, best_idx);
+            return true;
+        default:
+            return false;
     }
 }
 
