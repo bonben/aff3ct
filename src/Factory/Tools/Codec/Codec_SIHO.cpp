@@ -7,6 +7,7 @@
 #include "Factory/Tools/Codec/Polar/Codec_polar.hpp"
 #include "Factory/Tools/Codec/Polar_MK/Codec_polar_MK.hpp"
 #include "Factory/Tools/Codec/Polar_PAC/Codec_polar_PAC.hpp"
+#include "Factory/Tools/Codec/Polar_PT/Codec_polar_PT.hpp"
 #include "Factory/Tools/Codec/RA/Codec_RA.hpp"
 #include "Factory/Tools/Codec/RS/Codec_RS.hpp"
 #include "Factory/Tools/Codec/RSC/Codec_RSC.hpp"
@@ -44,6 +45,8 @@ Codec_SIHO ::build(const module::CRC<B>* crc) const
     if (get_name() == Codec_polar_name) return dynamic_cast<const Codec_polar&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_polar_PAC_name)
         return dynamic_cast<const Codec_polar_PAC&>(*this).template build<B, Q>(crc);
+    if (get_name() == Codec_polar_PT_name) return dynamic_cast<const Codec_polar_PT&>(*this).template build<B, Q>(crc);
+
     if (get_name() == Codec_polar_MK_name) return dynamic_cast<const Codec_polar_MK&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_RA_name) return dynamic_cast<const Codec_RA&>(*this).template build<B, Q>(crc);
     if (get_name() == Codec_repetition_name)

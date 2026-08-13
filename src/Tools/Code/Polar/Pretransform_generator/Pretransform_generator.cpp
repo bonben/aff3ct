@@ -6,48 +6,50 @@
 #include <sstream>
 #include <streampu.hpp>
 
-#include "Tools/Code/Polar/Frozenbits_generator/Frozenbits_generator.hpp"
+#include "Tools/Code/Polar/Pretransform_generator/Pretransform_generator.hpp"
 #include "Tools/Noise/noise_utils.h"
 
 using namespace aff3ct;
 using namespace aff3ct::tools;
 
-std::thread::id Frozenbits_generator::master_thread_id = std::this_thread::get_id();
+std::thread::id Pretransform_generator::master_thread_id = std::this_thread::get_id();
 
-Frozenbits_generator ::Frozenbits_generator(const int K,
-                                            const int N,
-                                            const std::string& dump_channels_path,
-                                            const bool dump_channels_single_thread)
+Pretransform_generator ::Pretransform_generator(const int K,
+                                                const int N,
+                                                const std::string& dump_channels_path,
+                                                const bool dump_channels_single_thread)
   : dump_channels_path(dump_channels_path)
   , dump_channels_single_thread(dump_channels_single_thread)
   , K(K)
   , N(N)
   , noise(nullptr)
   , best_channels(N)
+  , info_bits_loc(K)
 {
     std::iota(this->best_channels.begin(), this->best_channels.end(), 0);
+    std::iota(this->info_bits_loc.begin(), this->info_bits_loc.end(), 0);
 }
 
 int
-Frozenbits_generator ::get_K() const
+Pretransform_generator ::get_K() const
 {
     return this->K;
 }
 
 int
-Frozenbits_generator ::get_N() const
+Pretransform_generator ::get_N() const
 {
     return this->N;
 }
 
 void
-Frozenbits_generator ::set_noise(const tools::Noise<>& noise)
+Pretransform_generator ::set_noise(const tools::Noise<>& noise)
 {
     this->noise = &noise;
 }
 
 const tools::Noise<>&
-Frozenbits_generator ::get_noise() const
+Pretransform_generator ::get_noise() const
 {
     if (this->noise == nullptr)
     {
@@ -60,22 +62,26 @@ Frozenbits_generator ::get_noise() const
 }
 
 void
-Frozenbits_generator ::generate(std::vector<bool>& frozen_bits)
+Pretransform_generator ::generate(std::vector<bool>& dynamic_frozen_bits)
 {
-    if (frozen_bits.size() != (unsigned)N)
+    if (dynamic_frozen_bits.size() != (unsigned)N)
     {
         std::stringstream message;
-        message << "'frozen_bits.size()' has to be equal to 'N' ('frozen_bits.size()' = " << frozen_bits.size()
-                << ", 'N' = " << N << ").";
+        message << "'dynamic_frozen_bits.size()' has to be equal to 'N' ('frozen_bits.size()' = "
+                << dynamic_frozen_bits.size() << ", 'N' = " << N << ").";
         throw spu::tools::length_error(__FILE__, __LINE__, __func__, message.str());
     }
 
     this->evaluate();
 
-    // init frozen_bits vector, true means frozen bits, false means information bits
-    std::fill(frozen_bits.begin(), frozen_bits.end(), true);
-    for (auto i = 0; i < K; i++)
-        frozen_bits[best_channels[i]] = false;
+    // init dynamic_frozen_bits vector, true means frozen bits, false means information bits
+    std::fill(dynamic_frozen_bits.begin(), dynamic_frozen_bits.end(), false);
+    // for (auto i = 0; i < K; i++)
+    //     dynamic_frozen_bits[best_channels[i]] = false;
+    // for (auto i = 0; i < K; i++)
+    //     dynamic_frozen_bits[info_bits_loc[i]] = false;
+    for (const auto& v : this->preTransform)
+        dynamic_frozen_bits[v.first] = true;
 
     if (!dump_channels_path.empty() &&
         (!dump_channels_single_thread || this->master_thread_id == std::this_thread::get_id()))
@@ -106,13 +112,13 @@ Frozenbits_generator ::generate(std::vector<bool>& frozen_bits)
 }
 
 const std::vector<uint32_t>&
-Frozenbits_generator ::get_best_channels() const
+Pretransform_generator ::get_best_channels() const
 {
     return best_channels;
 }
 
 void
-Frozenbits_generator ::check_noise()
+Pretransform_generator ::check_noise()
 {
     if (this->noise == nullptr)
     {
@@ -126,8 +132,14 @@ Frozenbits_generator ::check_noise()
     }
 }
 
+const std::map<uint32_t, std::vector<uint32_t>>&
+Pretransform_generator::get_pre_transform() const
+{
+    return preTransform;
+}
+
 void
-Frozenbits_generator ::dump_best_channels(const std::string& dump_channels_full_path) const
+Pretransform_generator ::dump_best_channels(const std::string& dump_channels_full_path) const
 {
     std::string noise_type = "unkn";
     if (this->noise != nullptr)
