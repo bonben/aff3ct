@@ -30,7 +30,7 @@ class Encoder_polar
 
     virtual Encoder_polar<B>* clone() const;
 
-    virtual void light_encode(B* bits);
+    void light_encode(B* bits);
 
     bool is_codeword(const B* X_N);
 

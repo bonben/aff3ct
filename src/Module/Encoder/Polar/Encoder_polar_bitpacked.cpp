@@ -17,25 +17,13 @@ using namespace aff3ct::module;
 using namespace aff3ct::tools;
 
 template<typename B>
-alignas(64) uint8_t Encoder_polar_bitpacked<B>::bit_expand_lut[256][8];
-
-template<typename B>
-bool Encoder_polar_bitpacked<B>::lut_initialized = false;
-
-template<typename B>
 Encoder_polar_bitpacked<B>::Encoder_polar_bitpacked(const int& K, const int& N, const std::vector<bool>& frozen_bits)
   : Encoder_polar<B>(K, N, frozen_bits)
-  , packed_frozen_bits(this->N >> 6, 0)
-  , pack_buffer(this->N >> 6, 0)
+  , packed_frozen_bits(N >= 64 ? (N >> 6) : 0, 0)
+  , pack_buffer(N >= 64 ? (N >> 6) : 0, 0)
 {
     const std::string name = "Encoder_polar_bitpacked";
     this->set_name(name);
-
-    if (!lut_initialized)
-    {
-        init_lut();
-        lut_initialized = true;
-    }
 
     this->set_frozen_bits(frozen_bits);
 }
@@ -51,28 +39,23 @@ Encoder_polar_bitpacked<B>::clone() const
 
 template<typename B>
 void
-Encoder_polar_bitpacked<B>::init_lut()
-{
-    for (int i = 0; i < 256; ++i)
-        for (int j = 0; j < 8; ++j)
-            bit_expand_lut[i][j] = (i >> (7 - j)) & 1;
-}
-
-template<typename B>
-void
 Encoder_polar_bitpacked<B>::set_frozen_bits(const std::vector<bool>& frozen_bits)
 {
     Encoder_polar<B>::set_frozen_bits(frozen_bits);
 
-    this->packed_frozen_bits.assign(this->N >> 6, 0);
+    if (this->N >= 64)
+    {
+        this->packed_frozen_bits.assign(this->N >> 6, 0);
+        this->pack_buffer.assign(this->N >> 6, 0);
 
-    std::vector<B> notfb(this->N, 0);
-    for (unsigned i = 0; i < static_cast<unsigned>(this->N); ++i)
-        notfb[i] = !this->frozen_bits[i];
+        std::vector<B> notfb(this->N, 0);
+        for (unsigned i = 0; i < static_cast<unsigned>(this->N); ++i)
+            notfb[i] = !this->frozen_bits[i];
 
-    pack(notfb.data(), this->packed_frozen_bits.data(), this->N);
+        pack(notfb.data(), this->packed_frozen_bits.data(), this->N);
 
-    build_tree_execution_plan();
+        build_tree_execution_plan();
+    }
 }
 
 template<typename B>
@@ -91,7 +74,6 @@ Encoder_polar_bitpacked<B>::build_tree_execution_plan()
     const auto& leaves = parser.get_leaves_pattern_types();
 
     int bit_offset = 0;
-    int u_offset = 0;
 
     for (const auto& leaf : leaves)
     {
@@ -102,33 +84,10 @@ Encoder_polar_bitpacked<B>::build_tree_execution_plan()
         info.type = static_cast<int>(p_type);
         info.size = p_size;
         info.off_bit = bit_offset;
-        info.off_u = u_offset;
 
         this->execution_plan.push_back(info);
 
         bit_offset += p_size;
-
-        if (p_type == polar_node_t::RATE_0 || p_type == polar_node_t::RATE_0_LEFT)
-        {
-            // 0 info bits
-        }
-        else if (p_type == polar_node_t::RATE_1)
-        {
-            u_offset += p_size;
-        }
-        else if (p_type == polar_node_t::REP || p_type == polar_node_t::REP_LEFT)
-        {
-            u_offset += 1;
-        }
-        else if (p_type == polar_node_t::SPC)
-        {
-            u_offset += (p_size - 1);
-        }
-        else // STANDARD
-        {
-            for (int i = 0; i < p_size; ++i)
-                if (!this->frozen_bits[info.off_bit + i]) u_offset++;
-        }
     }
 }
 
@@ -160,40 +119,86 @@ Encoder_polar_bitpacked<B>::encode_tree_bitpacked(const B* U_K, uint64_t* pack_d
         }
         else if (p_type == polar_node_t::RATE_1) // R1 Node: all bits are information bits
         {
-            for (int i = 0; i < node.size; ++i)
+            if (node.size >= 64)
             {
-                int pos = node.off_bit + i;
-                uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
-                size_t w = pos >> 6;
-                size_t bit_pos = 63 - (pos & 63);
-                pack_data[w] |= (b << bit_pos);
+                pack(U_K + u_idx, pack_data + (node.off_bit >> 6), node.size);
+                u_idx += node.size;
+            }
+            else
+            {
+                uint64_t word_accum = 0;
+                for (int i = 0; i < node.size; ++i)
+                {
+                    uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
+                    size_t bit_pos = 63 - ((node.off_bit + i) & 63);
+                    word_accum |= (b << bit_pos);
+                }
+                pack_data[node.off_bit >> 6] |= word_accum;
             }
         }
         else if (p_type == polar_node_t::SPC) // SPC Node: first bit is frozen, remaining are info bits
         {
-            for (int i = 0; i < node.size; ++i)
+            if (node.size <= 64)
             {
-                int pos = node.off_bit + i;
-                if (i > 0)
+                uint64_t word_accum = 0;
+                for (int i = 1; i < node.size; ++i)
                 {
                     uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
-                    size_t w = pos >> 6;
-                    size_t bit_pos = 63 - (pos & 63);
-                    pack_data[w] |= (b << bit_pos);
+                    size_t bit_pos = 63 - ((node.off_bit + i) & 63);
+                    word_accum |= (b << bit_pos);
                 }
+                pack_data[node.off_bit >> 6] |= word_accum;
+            }
+            else
+            {
+                uint64_t word_accum0 = 0;
+                for (int i = 1; i < 64; ++i)
+                {
+                    uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
+                    size_t bit_pos = 63 - i;
+                    word_accum0 |= (b << bit_pos);
+                }
+                pack_data[node.off_bit >> 6] |= word_accum0;
+                pack(U_K + u_idx, pack_data + (node.off_bit >> 6) + 1, node.size - 64);
+                u_idx += (node.size - 64);
             }
         }
         else // STANDARD Node: mixed frozen/info node
         {
-            for (int i = 0; i < node.size; ++i)
+            if (node.size <= 64)
             {
-                int pos = node.off_bit + i;
-                if (!this->frozen_bits[pos])
+                uint64_t word_accum = 0;
+                for (int i = 0; i < node.size; ++i)
                 {
-                    uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
-                    size_t w = pos >> 6;
-                    size_t bit_pos = 63 - (pos & 63);
-                    pack_data[w] |= (b << bit_pos);
+                    int pos = node.off_bit + i;
+                    if (!this->frozen_bits[pos])
+                    {
+                        uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
+                        size_t bit_pos = 63 - (pos & 63);
+                        word_accum |= (b << bit_pos);
+                    }
+                }
+                pack_data[node.off_bit >> 6] |= word_accum;
+            }
+            else
+            {
+                const int n_sub_words = node.size >> 6;
+                const size_t base_word = node.off_bit >> 6;
+                for (int w = 0; w < n_sub_words; ++w)
+                {
+                    uint64_t word_accum = 0;
+                    const int base_bit = (w << 6);
+                    for (int i = 0; i < 64; ++i)
+                    {
+                        int pos = node.off_bit + base_bit + i;
+                        if (!this->frozen_bits[pos])
+                        {
+                            uint64_t b = static_cast<uint64_t>(U_K[u_idx++]) & 1u;
+                            size_t bit_pos = 63 - i;
+                            word_accum |= (b << bit_pos);
+                        }
+                    }
+                    pack_data[base_word + w] |= word_accum;
                 }
             }
         }
@@ -263,28 +268,6 @@ Encoder_polar_bitpacked<B>::pack(const B* bits_in, uint64_t* pack_out, const siz
 
 template<typename B>
 void
-Encoder_polar_bitpacked<B>::pack_systematic(const B* U_K, uint64_t* pack_out, const size_t N) const
-{
-    const size_t n_words = N >> 6;
-    size_t k_idx = 0;
-    for (size_t w = 0; w < n_words; ++w)
-    {
-        uint64_t symb = 0;
-        const size_t base_idx = w << 6;
-        for (size_t j = 0; j < 64; ++j)
-        {
-            symb <<= 1;
-            if (!this->frozen_bits[base_idx + j])
-            {
-                symb |= (static_cast<uint64_t>(U_K[k_idx++]) & 1u);
-            }
-        }
-        pack_out[w] = symb;
-    }
-}
-
-template<typename B>
-void
 Encoder_polar_bitpacked<B>::unpack(const uint64_t* pack_in, B* bits_out, const size_t N)
 {
     const size_t n_words = N >> 6;
@@ -321,9 +304,8 @@ Encoder_polar_bitpacked<B>::unpack(const uint64_t* pack_in, B* bits_out, const s
         for (size_t b = 0; b < 8; ++b)
         {
             uint8_t byte = static_cast<uint8_t>((s >> ((7 - b) * 8)) & 0xFF);
-            const uint8_t* lut = bit_expand_lut[byte];
             for (size_t j = 0; j < 8; ++j)
-                out[(b << 3) + j] = static_cast<B>(lut[j]);
+                out[(b << 3) + j] = static_cast<B>((byte >> (7 - j)) & 1);
         }
     }
 }
@@ -356,6 +338,18 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
         const mipp::Reg<uint64_t> m4 = masks[4];
         const mipp::Reg<uint64_t> m5 = masks[5];
 
+#if defined(__AVX512F__)
+        const __m512i idx_d1 = _mm512_setr_epi64(1, 0, 3, 2, 5, 4, 7, 6);
+        const __m512i mask_d1 = _mm512_setr_epi64(-1LL, 0LL, -1LL, 0LL, -1LL, 0LL, -1LL, 0LL);
+        const __m512i idx_d2 = _mm512_setr_epi64(2, 3, 0, 1, 6, 7, 4, 5);
+        const __m512i mask_d2 = _mm512_setr_epi64(-1LL, -1LL, 0LL, 0LL, -1LL, -1LL, 0LL, 0LL);
+        const __m512i idx_d4 = _mm512_setr_epi64(4, 5, 6, 7, 0, 1, 2, 3);
+        const __m512i mask_d4 = _mm512_setr_epi64(-1LL, -1LL, -1LL, -1LL, 0LL, 0LL, 0LL, 0LL);
+#elif defined(__AVX2__)
+        const __m256i mask_d1 = _mm256_setr_epi64x(-1LL, 0LL, -1LL, 0LL);
+        const __m256i mask_d2 = _mm256_setr_epi64x(-1LL, -1LL, 0LL, 0LL);
+#endif
+
         for (size_t r = 0; r < n_simd; ++r)
         {
             uint64_t* ptr = pack_data + r * W_reg;
@@ -371,44 +365,43 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
 #if defined(__AVX512F__)
             if (W_reg == 8)
             {
-                __m512i vreg = *reinterpret_cast<__m512i*>(&reg.r);
-                static const __m512i idx_d1 = _mm512_setr_epi64(1, 0, 3, 2, 5, 4, 7, 6);
-                static const __m512i mask_d1 = _mm512_setr_epi64(-1LL, 0LL, -1LL, 0LL, -1LL, 0LL, -1LL, 0LL);
+                __m512i vreg = _mm512_castps_si512(reg.r);
                 __m512i perm_d1 = _mm512_permutexvar_epi64(idx_d1, vreg);
                 vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d1, mask_d1));
 
-                static const __m512i idx_d2 = _mm512_setr_epi64(2, 3, 0, 1, 6, 7, 4, 5);
-                static const __m512i mask_d2 = _mm512_setr_epi64(-1LL, -1LL, 0LL, 0LL, -1LL, -1LL, 0LL, 0LL);
                 __m512i perm_d2 = _mm512_permutexvar_epi64(idx_d2, vreg);
                 vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d2, mask_d2));
 
-                static const __m512i idx_d4 = _mm512_setr_epi64(4, 5, 6, 7, 0, 1, 2, 3);
-                static const __m512i mask_d4 = _mm512_setr_epi64(-1LL, -1LL, -1LL, -1LL, 0LL, 0LL, 0LL, 0LL);
                 __m512i perm_d4 = _mm512_permutexvar_epi64(idx_d4, vreg);
                 vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d4, mask_d4));
 
-                *reinterpret_cast<__m512i*>(&reg.r) = vreg;
+                reg.r = _mm512_castsi512_ps(vreg);
             }
 #elif defined(__AVX2__)
             if (W_reg == 4)
             {
-                __m256i vreg = *reinterpret_cast<__m256i*>(&reg.r);
+                __m256i vreg = _mm256_castps_si256(reg.r);
                 __m256i perm_d1 = _mm256_permute4x64_epi64(vreg, _MM_SHUFFLE(2, 3, 0, 1));
-                static const __m256i mask_d1 = _mm256_setr_epi64x(-1LL, 0LL, -1LL, 0LL);
                 vreg = _mm256_xor_si256(vreg, _mm256_and_si256(perm_d1, mask_d1));
 
                 __m256i perm_d2 = _mm256_permute4x64_epi64(vreg, _MM_SHUFFLE(1, 0, 3, 2));
-                static const __m256i mask_d2 = _mm256_setr_epi64x(-1LL, -1LL, 0LL, 0LL);
                 vreg = _mm256_xor_si256(vreg, _mm256_and_si256(perm_d2, mask_d2));
 
-                *reinterpret_cast<__m256i*>(&reg.r) = vreg;
+                reg.r = _mm256_castsi256_ps(vreg);
             }
 #endif
 
             reg.storeu(ptr);
         }
 
-        const size_t start_d_words = (W_reg >= 4) ? W_reg : 1;
+#if defined(__AVX512F__)
+        const size_t lanes_done = (W_reg == 8) ? 8 : 1;
+#elif defined(__AVX2__)
+        const size_t lanes_done = (W_reg == 4) ? 4 : 1;
+#else
+        const size_t lanes_done = 1;
+#endif
+        const size_t start_d_words = lanes_done;
 
         for (size_t d_words = start_d_words; d_words < n_words; d_words <<= 1)
         {
@@ -466,21 +459,6 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
             }
         }
     }
-}
-
-template<typename B>
-void
-Encoder_polar_bitpacked<B>::light_encode(B* bits)
-{
-    if (this->N < 64)
-    {
-        Encoder_polar<B>::light_encode(bits);
-        return;
-    }
-
-    pack(bits, this->pack_buffer.data(), this->N);
-    transform_packed(this->pack_buffer.data(), this->N);
-    unpack(this->pack_buffer.data(), bits, this->N);
 }
 
 template<typename B>

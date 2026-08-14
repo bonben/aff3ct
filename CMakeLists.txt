@@ -821,6 +821,3 @@ if (AFF3CT_UPLOAD_PPA)
 endif()
 
 include(CPack)
-
-
-

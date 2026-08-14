@@ -532,6 +532,9 @@
 
 .. ------------------------------------------- factory Encoder_polar parameters
 
+.. |factory::Encoder_polar::p+implem| replace::
+   Select the encoder implementation.
+
 .. |factory::Encoder_polar::p+no-sys| replace::
    Enable non-systematic encoding. By default the encoding process is
    systematic.

@@ -24,7 +24,6 @@ class Encoder_polar_bitpacked : public Encoder_polar<B>
         int type;    // Pattern type (R0, R1, REP, SPC, STD)
         int size;    // Node size N_sub
         int off_bit; // Bit offset in codeword
-        int off_u;   // Offset in information vector U_K
     };
 
   protected:
@@ -32,16 +31,11 @@ class Encoder_polar_bitpacked : public Encoder_polar<B>
     mipp::vector<uint64_t> pack_buffer;
     std::vector<Tree_node_info> execution_plan;
 
-    alignas(64) static uint8_t bit_expand_lut[256][8];
-    static bool lut_initialized;
-
   public:
     Encoder_polar_bitpacked(const int& K, const int& N, const std::vector<bool>& frozen_bits);
     virtual ~Encoder_polar_bitpacked() = default;
 
     virtual Encoder_polar_bitpacked<B>* clone() const;
-
-    virtual void light_encode(B* bits);
 
     virtual void set_frozen_bits(const std::vector<bool>& frozen_bits);
 
@@ -51,9 +45,7 @@ class Encoder_polar_bitpacked : public Encoder_polar<B>
     void build_tree_execution_plan();
     void encode_tree_bitpacked(const B* U_K, uint64_t* pack_data);
 
-    static void init_lut();
     static void pack(const B* bits_in, uint64_t* pack_out, const size_t N);
-    void pack_systematic(const B* U_K, uint64_t* pack_out, const size_t N) const;
     static void unpack(const uint64_t* pack_in, B* bits_out, const size_t N);
     static void transform_packed(uint64_t* pack_data, const size_t N);
 };
