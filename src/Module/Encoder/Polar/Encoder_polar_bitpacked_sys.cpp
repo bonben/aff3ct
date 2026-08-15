@@ -43,8 +43,27 @@ Encoder_polar_bitpacked_sys<B>::_encode(const B* U_K, B* X_N, const size_t /*fra
 
     // 2. Mask frozen bits (packed_frozen_bits has 1s at info positions and 0s at frozen positions)
     const size_t n_words = this->N >> 6;
-    for (size_t i = 0; i < n_words; ++i)
-        this->pack_buffer[i] &= this->packed_frozen_bits[i];
+    constexpr int W_reg = mipp::N<uint64_t>();
+    const size_t n_simd = n_words / W_reg;
+
+    if (n_simd > 0)
+    {
+        for (size_t r = 0; r < n_simd; ++r)
+        {
+            uint64_t* ptr_buf = this->pack_buffer.data() + r * W_reg;
+            const uint64_t* ptr_fb = this->packed_frozen_bits.data() + r * W_reg;
+            mipp::Reg<uint64_t> reg_buf, reg_fb;
+            reg_buf.load(ptr_buf);
+            reg_fb.load(ptr_fb);
+            reg_buf &= reg_fb;
+            reg_buf.store(ptr_buf);
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < n_words; ++i)
+            this->pack_buffer[i] &= this->packed_frozen_bits[i];
+    }
 
     // 3. Second pass butterfly transform
     this->transform_packed(this->pack_buffer.data(), this->N);

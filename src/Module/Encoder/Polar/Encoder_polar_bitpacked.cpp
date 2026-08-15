@@ -45,14 +45,20 @@ Encoder_polar_bitpacked<B>::set_frozen_bits(const std::vector<bool>& frozen_bits
 
     if (this->N >= 64)
     {
-        this->packed_frozen_bits.assign(this->N >> 6, 0);
-        this->pack_buffer.assign(this->N >> 6, 0);
+        const size_t n_words = this->N >> 6;
+        this->packed_frozen_bits.assign(n_words, 0);
+        this->pack_buffer.assign(n_words, 0);
 
-        std::vector<B> notfb(this->N, 0);
-        for (unsigned i = 0; i < static_cast<unsigned>(this->N); ++i)
-            notfb[i] = !this->frozen_bits[i];
-
-        pack(notfb.data(), this->packed_frozen_bits.data(), this->N);
+        for (size_t w = 0; w < n_words; ++w)
+        {
+            uint64_t word = 0;
+            const size_t base = w << 6;
+            for (size_t j = 0; j < 64; ++j)
+            {
+                word = (word << 1) | (!this->frozen_bits[base + j] ? 1ULL : 0ULL);
+            }
+            this->packed_frozen_bits[w] = word;
+        }
 
         build_tree_execution_plan();
     }
@@ -213,54 +219,19 @@ void
 Encoder_polar_bitpacked<B>::pack(const B* bits_in, uint64_t* pack_out, const size_t N)
 {
     const size_t n_words = N >> 6;
-
-#if defined(__AVX2__)
-    if (sizeof(B) == 4)
-    {
-        static const uint8_t rev8[256] = {
-            0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0, 0x08, 0x88,
-            0x48, 0xC8, 0x28, 0xA8, 0x68, 0xE8, 0x18, 0x98, 0x58, 0xD8, 0x38, 0xB8, 0x78, 0xF8, 0x04, 0x84, 0x44, 0xC4,
-            0x24, 0xA4, 0x64, 0xE4, 0x14, 0x94, 0x54, 0xD4, 0x34, 0xB4, 0x74, 0xF4, 0x0C, 0x8C, 0x4C, 0xCC, 0x2C, 0xAC,
-            0x6C, 0xEC, 0x1C, 0x9C, 0x5C, 0xDC, 0x3C, 0xBC, 0x7C, 0xFC, 0x02, 0x82, 0x42, 0xC2, 0x22, 0xA2, 0x62, 0xE2,
-            0x12, 0x92, 0x52, 0xD2, 0x32, 0xB2, 0x72, 0xF2, 0x0A, 0x8A, 0x4A, 0xCA, 0x2A, 0xAA, 0x6A, 0xEA, 0x1A, 0x9A,
-            0x5A, 0xDA, 0x3A, 0xBA, 0x7A, 0xFA, 0x06, 0x86, 0x46, 0xC6, 0x26, 0xA6, 0x66, 0xE6, 0x16, 0x96, 0x56, 0xD6,
-            0x36, 0xB6, 0x76, 0xF6, 0x0E, 0x8E, 0x4E, 0xCE, 0x2E, 0xAE, 0x6E, 0xEE, 0x1E, 0x9E, 0x5E, 0xDE, 0x3E, 0xBE,
-            0x7E, 0xFE, 0x01, 0x81, 0x41, 0xC1, 0x21, 0xA1, 0x61, 0xE1, 0x11, 0x91, 0x51, 0xD1, 0x31, 0xB1, 0x71, 0xF1,
-            0x09, 0x89, 0x49, 0xC9, 0x29, 0xA9, 0x69, 0xE9, 0x19, 0x99, 0x59, 0xD9, 0x39, 0xB9, 0x79, 0xF9, 0x05, 0x85,
-            0x45, 0xC5, 0x25, 0xA5, 0x65, 0xE5, 0x15, 0x95, 0x55, 0xD5, 0x35, 0xB5, 0x75, 0xF5, 0x0D, 0x8D, 0x4D, 0xCD,
-            0x2D, 0xAD, 0x6D, 0xED, 0x1D, 0x9D, 0x5D, 0xDD, 0x3D, 0xBD, 0x7D, 0xFD, 0x03, 0x83, 0x43, 0xC3, 0x23, 0xA3,
-            0x63, 0xE3, 0x13, 0x93, 0x53, 0xD3, 0x33, 0xB3, 0x73, 0xF3, 0x0B, 0x8B, 0x4B, 0xCB, 0x2B, 0xAB, 0x6B, 0xEB,
-            0x1B, 0x9B, 0x5B, 0xDB, 0x3B, 0xBB, 0x7B, 0xFB, 0x07, 0x87, 0x47, 0xC7, 0x27, 0xA7, 0x67, 0xE7, 0x17, 0x97,
-            0x57, 0xD7, 0x37, 0xB7, 0x77, 0xF7, 0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF,
-            0x3F, 0xBF, 0x7F, 0xFF
-        };
-
-        const __m256i zero = _mm256_setzero_si256();
-        for (size_t w = 0; w < n_words; ++w)
-        {
-            const auto* in = reinterpret_cast<const __m256i*>(bits_in + (w << 6));
-            uint64_t symb = 0;
-            for (int i = 0; i < 8; ++i)
-            {
-                __m256i v = _mm256_loadu_si256(in + i);
-                __m256i cmp = _mm256_cmpeq_epi32(v, zero);
-                uint8_t raw = static_cast<uint8_t>(~_mm256_movemask_ps(_mm256_castsi256_ps(cmp)));
-                symb = (symb << 8) | rev8[raw];
-            }
-            pack_out[w] = symb;
-        }
-        return;
-    }
-#endif
-
     for (size_t w = 0; w < n_words; ++w)
     {
-        uint64_t symb = 0;
         const B* in = bits_in + (w << 6);
-        for (size_t j = 0; j < 64; ++j)
+        uint64_t symb = 0;
+        for (int b = 0; b < 8; ++b)
         {
-            symb <<= 1;
-            symb |= (static_cast<uint64_t>(in[j]) & 1u);
+            const B* p = in + (b << 3);
+            uint64_t byte_val =
+              ((static_cast<uint64_t>(p[0]) & 1ULL) << 7) | ((static_cast<uint64_t>(p[1]) & 1ULL) << 6) |
+              ((static_cast<uint64_t>(p[2]) & 1ULL) << 5) | ((static_cast<uint64_t>(p[3]) & 1ULL) << 4) |
+              ((static_cast<uint64_t>(p[4]) & 1ULL) << 3) | ((static_cast<uint64_t>(p[5]) & 1ULL) << 2) |
+              ((static_cast<uint64_t>(p[6]) & 1ULL) << 1) | ((static_cast<uint64_t>(p[7]) & 1ULL) << 0);
+            symb = (symb << 8) | byte_val;
         }
         pack_out[w] = symb;
     }
@@ -270,42 +241,53 @@ template<typename B>
 void
 Encoder_polar_bitpacked<B>::unpack(const uint64_t* pack_in, B* bits_out, const size_t N)
 {
-    const size_t n_words = N >> 6;
+    constexpr int W = mipp::N<B>();
 
-#if defined(__AVX2__)
-    if (sizeof(B) == 4)
+    if (W > 1 && W <= 64)
     {
-        const __m256i bit_masks = _mm256_setr_epi32(0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01);
-        const __m256i zero = _mm256_setzero_si256();
-        const __m256i one = _mm256_set1_epi32(1);
+        B mask_arr[W];
+        for (int i = 0; i < W; ++i)
+            mask_arr[i] = static_cast<B>(1ULL << (W - 1 - i));
 
+        const mipp::Reg<B> bit_masks = mask_arr;
+        const mipp::Reg<B> zero = static_cast<B>(0);
+        const mipp::Reg<B> one = static_cast<B>(1);
+
+        const size_t n_chunks = N / W;
+        for (size_t c = 0; c < n_chunks; ++c)
+        {
+            const size_t bit_idx = c * W;
+            const size_t word_idx = bit_idx >> 6;
+            const size_t bit_pos = bit_idx & 63;
+            const uint64_t s = pack_in[word_idx];
+            const uint64_t chunk_val = (s >> (64 - bit_pos - W)) & ((W == 64) ? ~0ULL : ((1ULL << W) - 1ULL));
+
+            const mipp::Reg<B> v = static_cast<B>(chunk_val);
+            const mipp::Reg<B> test = v & bit_masks;
+            const mipp::Msk<W> is_one = (test != zero);
+            const mipp::Reg<B> res = mipp::blend<B>(one.r, zero.r, is_one.m);
+            res.storeu(bits_out + bit_idx);
+        }
+    }
+    else
+    {
+        const size_t n_words = N >> 6;
         for (size_t w = 0; w < n_words; ++w)
         {
-            uint64_t s = pack_in[w];
-            auto* out_ptr = reinterpret_cast<__m256i*>(bits_out + (w << 6));
+            const uint64_t s = pack_in[w];
+            B* out = bits_out + (w << 6);
             for (size_t b = 0; b < 8; ++b)
             {
-                uint8_t byte = static_cast<uint8_t>((s >> ((7 - b) * 8)) & 0xFF);
-                __m256i vbit = _mm256_set1_epi32(byte);
-                __m256i test = _mm256_and_si256(vbit, bit_masks);
-                __m256i cmp = _mm256_cmpeq_epi32(test, zero);
-                __m256i res = _mm256_andnot_si256(cmp, one);
-                _mm256_storeu_si256(out_ptr + b, res);
+                const uint32_t byte = static_cast<uint32_t>((s >> ((7 - b) << 3)) & 0xFF);
+                out[(b << 3) + 0] = static_cast<B>((byte >> 7) & 1);
+                out[(b << 3) + 1] = static_cast<B>((byte >> 6) & 1);
+                out[(b << 3) + 2] = static_cast<B>((byte >> 5) & 1);
+                out[(b << 3) + 3] = static_cast<B>((byte >> 4) & 1);
+                out[(b << 3) + 4] = static_cast<B>((byte >> 3) & 1);
+                out[(b << 3) + 5] = static_cast<B>((byte >> 2) & 1);
+                out[(b << 3) + 6] = static_cast<B>((byte >> 1) & 1);
+                out[(b << 3) + 7] = static_cast<B>((byte >> 0) & 1);
             }
-        }
-        return;
-    }
-#endif
-
-    for (size_t w = 0; w < n_words; ++w)
-    {
-        uint64_t s = pack_in[w];
-        B* out = bits_out + (w << 6);
-        for (size_t b = 0; b < 8; ++b)
-        {
-            uint8_t byte = static_cast<uint8_t>((s >> ((7 - b) * 8)) & 0xFF);
-            for (size_t j = 0; j < 8; ++j)
-                out[(b << 3) + j] = static_cast<B>((byte >> (7 - j)) & 1);
         }
     }
 }
@@ -338,18 +320,6 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
         const mipp::Reg<uint64_t> m4 = masks[4];
         const mipp::Reg<uint64_t> m5 = masks[5];
 
-#if defined(__AVX512F__)
-        const __m512i idx_d1 = _mm512_setr_epi64(1, 0, 3, 2, 5, 4, 7, 6);
-        const __m512i mask_d1 = _mm512_setr_epi64(-1LL, 0LL, -1LL, 0LL, -1LL, 0LL, -1LL, 0LL);
-        const __m512i idx_d2 = _mm512_setr_epi64(2, 3, 0, 1, 6, 7, 4, 5);
-        const __m512i mask_d2 = _mm512_setr_epi64(-1LL, -1LL, 0LL, 0LL, -1LL, -1LL, 0LL, 0LL);
-        const __m512i idx_d4 = _mm512_setr_epi64(4, 5, 6, 7, 0, 1, 2, 3);
-        const __m512i mask_d4 = _mm512_setr_epi64(-1LL, -1LL, -1LL, -1LL, 0LL, 0LL, 0LL, 0LL);
-#elif defined(__AVX2__)
-        const __m256i mask_d1 = _mm256_setr_epi64x(-1LL, 0LL, -1LL, 0LL);
-        const __m256i mask_d2 = _mm256_setr_epi64x(-1LL, -1LL, 0LL, 0LL);
-#endif
-
         for (size_t r = 0; r < n_simd; ++r)
         {
             uint64_t* ptr = pack_data + r * W_reg;
@@ -361,49 +331,10 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
             reg ^= ((reg << 8) & m3);
             reg ^= ((reg << 16) & m4);
             reg ^= ((reg << 32) & m5);
-
-#if defined(__AVX512F__)
-            if (W_reg == 8)
-            {
-                __m512i vreg = _mm512_castps_si512(reg.r);
-                __m512i perm_d1 = _mm512_permutexvar_epi64(idx_d1, vreg);
-                vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d1, mask_d1));
-
-                __m512i perm_d2 = _mm512_permutexvar_epi64(idx_d2, vreg);
-                vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d2, mask_d2));
-
-                __m512i perm_d4 = _mm512_permutexvar_epi64(idx_d4, vreg);
-                vreg = _mm512_xor_si512(vreg, _mm512_and_si512(perm_d4, mask_d4));
-
-                reg.r = _mm512_castsi512_ps(vreg);
-            }
-#elif defined(__AVX2__)
-            if (W_reg == 4)
-            {
-                __m256i vreg = _mm256_castps_si256(reg.r);
-                __m256i perm_d1 = _mm256_permute4x64_epi64(vreg, _MM_SHUFFLE(2, 3, 0, 1));
-                vreg = _mm256_xor_si256(vreg, _mm256_and_si256(perm_d1, mask_d1));
-
-                __m256i perm_d2 = _mm256_permute4x64_epi64(vreg, _MM_SHUFFLE(1, 0, 3, 2));
-                vreg = _mm256_xor_si256(vreg, _mm256_and_si256(perm_d2, mask_d2));
-
-                reg.r = _mm256_castsi256_ps(vreg);
-            }
-#endif
-
             reg.storeu(ptr);
         }
 
-#if defined(__AVX512F__)
-        const size_t lanes_done = (W_reg == 8) ? 8 : 1;
-#elif defined(__AVX2__)
-        const size_t lanes_done = (W_reg == 4) ? 4 : 1;
-#else
-        const size_t lanes_done = 1;
-#endif
-        const size_t start_d_words = lanes_done;
-
-        for (size_t d_words = start_d_words; d_words < n_words; d_words <<= 1)
+        for (size_t d_words = 1; d_words < n_words; d_words <<= 1)
         {
             if (d_words < static_cast<size_t>(W_reg))
             {
