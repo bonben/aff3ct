@@ -241,53 +241,22 @@ template<typename B>
 void
 Encoder_polar_bitpacked<B>::unpack(const uint64_t* pack_in, B* bits_out, const size_t N)
 {
-    constexpr int W = mipp::N<B>();
-
-    if (W > 1 && W <= 64)
+    const size_t n_words = N >> 6;
+    for (size_t w = 0; w < n_words; ++w)
     {
-        B mask_arr[W];
-        for (int i = 0; i < W; ++i)
-            mask_arr[i] = static_cast<B>(1ULL << (W - 1 - i));
-
-        const mipp::Reg<B> bit_masks = mask_arr;
-        const mipp::Reg<B> zero = static_cast<B>(0);
-        const mipp::Reg<B> one = static_cast<B>(1);
-
-        const size_t n_chunks = N / W;
-        for (size_t c = 0; c < n_chunks; ++c)
+        const uint64_t s = pack_in[w];
+        B* out = bits_out + (w << 6);
+        for (size_t b = 0; b < 8; ++b)
         {
-            const size_t bit_idx = c * W;
-            const size_t word_idx = bit_idx >> 6;
-            const size_t bit_pos = bit_idx & 63;
-            const uint64_t s = pack_in[word_idx];
-            const uint64_t chunk_val = (s >> (64 - bit_pos - W)) & ((W == 64) ? ~0ULL : ((1ULL << W) - 1ULL));
-
-            const mipp::Reg<B> v = static_cast<B>(chunk_val);
-            const mipp::Reg<B> test = v & bit_masks;
-            const mipp::Msk<W> is_one = (test != zero);
-            const mipp::Reg<B> res = mipp::blend<B>(one.r, zero.r, is_one.m);
-            res.storeu(bits_out + bit_idx);
-        }
-    }
-    else
-    {
-        const size_t n_words = N >> 6;
-        for (size_t w = 0; w < n_words; ++w)
-        {
-            const uint64_t s = pack_in[w];
-            B* out = bits_out + (w << 6);
-            for (size_t b = 0; b < 8; ++b)
-            {
-                const uint32_t byte = static_cast<uint32_t>((s >> ((7 - b) << 3)) & 0xFF);
-                out[(b << 3) + 0] = static_cast<B>((byte >> 7) & 1);
-                out[(b << 3) + 1] = static_cast<B>((byte >> 6) & 1);
-                out[(b << 3) + 2] = static_cast<B>((byte >> 5) & 1);
-                out[(b << 3) + 3] = static_cast<B>((byte >> 4) & 1);
-                out[(b << 3) + 4] = static_cast<B>((byte >> 3) & 1);
-                out[(b << 3) + 5] = static_cast<B>((byte >> 2) & 1);
-                out[(b << 3) + 6] = static_cast<B>((byte >> 1) & 1);
-                out[(b << 3) + 7] = static_cast<B>((byte >> 0) & 1);
-            }
+            const uint32_t byte = static_cast<uint32_t>((s >> ((7 - b) << 3)) & 0xFF);
+            out[(b << 3) + 0] = static_cast<B>((byte >> 7) & 1);
+            out[(b << 3) + 1] = static_cast<B>((byte >> 6) & 1);
+            out[(b << 3) + 2] = static_cast<B>((byte >> 5) & 1);
+            out[(b << 3) + 3] = static_cast<B>((byte >> 4) & 1);
+            out[(b << 3) + 4] = static_cast<B>((byte >> 3) & 1);
+            out[(b << 3) + 5] = static_cast<B>((byte >> 2) & 1);
+            out[(b << 3) + 6] = static_cast<B>((byte >> 1) & 1);
+            out[(b << 3) + 7] = static_cast<B>((byte >> 0) & 1);
         }
     }
 }
