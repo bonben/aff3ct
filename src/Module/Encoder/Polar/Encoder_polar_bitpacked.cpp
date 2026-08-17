@@ -43,25 +43,23 @@ Encoder_polar_bitpacked<B>::set_frozen_bits(const std::vector<bool>& frozen_bits
 {
     Encoder_polar<B>::set_frozen_bits(frozen_bits);
 
-    if (this->N >= 64)
+    if (this->N < 64) return;
+
+    const size_t n_words = this->N >> 6;
+    if (this->packed_frozen_bits.size() != n_words) this->packed_frozen_bits.resize(n_words, 0);
+    if (this->pack_buffer.size() != n_words) this->pack_buffer.resize(n_words, 0);
+
+    for (size_t w = 0; w < n_words; ++w)
     {
-        const size_t n_words = this->N >> 6;
-        this->packed_frozen_bits.assign(n_words, 0);
-        this->pack_buffer.assign(n_words, 0);
-
-        for (size_t w = 0; w < n_words; ++w)
+        uint64_t word_mask = 0;
+        for (int b = 0; b < 64; ++b)
         {
-            uint64_t word = 0;
-            const size_t base = w << 6;
-            for (size_t j = 0; j < 64; ++j)
-            {
-                word = (word << 1) | (!this->frozen_bits[base + j] ? 1ULL : 0ULL);
-            }
-            this->packed_frozen_bits[w] = word;
+            if (!this->frozen_bits[(w << 6) + b]) word_mask |= (1ULL << (63 - b));
         }
-
-        build_tree_execution_plan();
+        this->packed_frozen_bits[w] = word_mask;
     }
+
+    build_tree_execution_plan();
 }
 
 template<typename B>
@@ -218,22 +216,52 @@ template<typename B>
 void
 Encoder_polar_bitpacked<B>::pack(const B* bits_in, uint64_t* pack_out, const size_t N)
 {
-    const size_t n_words = N >> 6;
-    for (size_t w = 0; w < n_words; ++w)
+    constexpr int W = mipp::N<B>();
+
+    if (W > 1 && sizeof(B) < 8 && W <= static_cast<int>(8 * sizeof(B)))
     {
-        const B* in = bits_in + (w << 6);
-        uint64_t symb = 0;
-        for (int b = 0; b < 8; ++b)
+        B weights_arr[W];
+        for (int j = 0; j < W; ++j)
+            weights_arr[j] = static_cast<B>(1ULL << (W - 1 - j));
+        const mipp::Reg<B> w_reg = weights_arr;
+
+        const size_t n_words = N >> 6;
+        constexpr int chunks_per_word = 64 / W;
+
+        for (size_t w = 0; w < n_words; ++w)
         {
-            const B* p = in + (b << 3);
-            uint64_t byte_val =
-              ((static_cast<uint64_t>(p[0]) & 1ULL) << 7) | ((static_cast<uint64_t>(p[1]) & 1ULL) << 6) |
-              ((static_cast<uint64_t>(p[2]) & 1ULL) << 5) | ((static_cast<uint64_t>(p[3]) & 1ULL) << 4) |
-              ((static_cast<uint64_t>(p[4]) & 1ULL) << 3) | ((static_cast<uint64_t>(p[5]) & 1ULL) << 2) |
-              ((static_cast<uint64_t>(p[6]) & 1ULL) << 1) | ((static_cast<uint64_t>(p[7]) & 1ULL) << 0);
-            symb = (symb << 8) | byte_val;
+            uint64_t word_val = 0;
+            const B* in = bits_in + (w << 6);
+            for (int c = 0; c < chunks_per_word; ++c)
+            {
+                mipp::Reg<B> v;
+                v.loadu(in + c * W);
+                const B chunk = (v * w_reg).hadd();
+                typedef typename std::make_unsigned<B>::type U_B;
+                word_val = (word_val << W) | static_cast<uint64_t>(static_cast<U_B>(chunk));
+            }
+            pack_out[w] = word_val;
         }
-        pack_out[w] = symb;
+    }
+    else
+    {
+        const size_t n_words = N >> 6;
+        for (size_t w = 0; w < n_words; ++w)
+        {
+            const B* in = bits_in + (w << 6);
+            uint64_t symb = 0;
+            for (int b = 0; b < 8; ++b)
+            {
+                const B* p = in + (b << 3);
+                uint64_t byte_val =
+                  ((static_cast<uint64_t>(p[0]) & 1ULL) << 7) | ((static_cast<uint64_t>(p[1]) & 1ULL) << 6) |
+                  ((static_cast<uint64_t>(p[2]) & 1ULL) << 5) | ((static_cast<uint64_t>(p[3]) & 1ULL) << 4) |
+                  ((static_cast<uint64_t>(p[4]) & 1ULL) << 3) | ((static_cast<uint64_t>(p[5]) & 1ULL) << 2) |
+                  ((static_cast<uint64_t>(p[6]) & 1ULL) << 1) | ((static_cast<uint64_t>(p[7]) & 1ULL) << 0);
+                symb = (symb << 8) | byte_val;
+            }
+            pack_out[w] = symb;
+        }
     }
 }
 
@@ -241,22 +269,53 @@ template<typename B>
 void
 Encoder_polar_bitpacked<B>::unpack(const uint64_t* pack_in, B* bits_out, const size_t N)
 {
-    const size_t n_words = N >> 6;
-    for (size_t w = 0; w < n_words; ++w)
+    constexpr int W = mipp::N<B>();
+
+    if (W > 1 && W <= (int)(8 * sizeof(B)))
     {
-        const uint64_t s = pack_in[w];
-        B* out = bits_out + (w << 6);
-        for (size_t b = 0; b < 8; ++b)
+        B mask_arr[W];
+        for (int i = 0; i < W; ++i)
+            mask_arr[i] = static_cast<B>(1ULL << (W - 1 - i));
+
+        const mipp::Reg<B> bit_masks = mask_arr;
+        const mipp::Reg<B> zero = static_cast<B>(0);
+        const mipp::Reg<B> one = static_cast<B>(1);
+
+        const size_t n_chunks = N / W;
+        for (size_t c = 0; c < n_chunks; ++c)
         {
-            const uint32_t byte = static_cast<uint32_t>((s >> ((7 - b) << 3)) & 0xFF);
-            out[(b << 3) + 0] = static_cast<B>((byte >> 7) & 1);
-            out[(b << 3) + 1] = static_cast<B>((byte >> 6) & 1);
-            out[(b << 3) + 2] = static_cast<B>((byte >> 5) & 1);
-            out[(b << 3) + 3] = static_cast<B>((byte >> 4) & 1);
-            out[(b << 3) + 4] = static_cast<B>((byte >> 3) & 1);
-            out[(b << 3) + 5] = static_cast<B>((byte >> 2) & 1);
-            out[(b << 3) + 6] = static_cast<B>((byte >> 1) & 1);
-            out[(b << 3) + 7] = static_cast<B>((byte >> 0) & 1);
+            const size_t bit_idx = c * W;
+            const size_t word_idx = bit_idx >> 6;
+            const size_t bit_pos = bit_idx & 63;
+            const uint64_t s = pack_in[word_idx];
+            const uint64_t chunk_val = (s >> (64 - bit_pos - W)) & ((W == 64) ? ~0ULL : ((1ULL << W) - 1ULL));
+
+            const mipp::Reg<B> v = static_cast<B>(chunk_val);
+            const mipp::Reg<B> test = v & bit_masks;
+            const mipp::Msk<W> is_one = (test != zero);
+            const mipp::Reg<B> res = mipp::blend<B>(one.r, zero.r, is_one.m);
+            res.storeu(bits_out + bit_idx);
+        }
+    }
+    else
+    {
+        const size_t n_words = N >> 6;
+        for (size_t w = 0; w < n_words; ++w)
+        {
+            const uint64_t s = pack_in[w];
+            B* out = bits_out + (w << 6);
+            for (size_t b = 0; b < 8; ++b)
+            {
+                const uint32_t byte = static_cast<uint32_t>((s >> ((7 - b) << 3)) & 0xFF);
+                out[(b << 3) + 0] = static_cast<B>((byte >> 7) & 1);
+                out[(b << 3) + 1] = static_cast<B>((byte >> 6) & 1);
+                out[(b << 3) + 2] = static_cast<B>((byte >> 5) & 1);
+                out[(b << 3) + 3] = static_cast<B>((byte >> 4) & 1);
+                out[(b << 3) + 4] = static_cast<B>((byte >> 3) & 1);
+                out[(b << 3) + 5] = static_cast<B>((byte >> 2) & 1);
+                out[(b << 3) + 6] = static_cast<B>((byte >> 1) & 1);
+                out[(b << 3) + 7] = static_cast<B>((byte >> 0) & 1);
+            }
         }
     }
 }
@@ -307,30 +366,29 @@ Encoder_polar_bitpacked<B>::transform_packed(uint64_t* pack_data, const size_t N
         {
             if (d_words < static_cast<size_t>(W_reg))
             {
-                const size_t block_size = d_words << 1;
-                for (size_t b = 0; b < n_words; b += block_size)
+                for (size_t i = 0; i < n_words; i += (d_words << 1))
                 {
-                    for (size_t i = 0; i < d_words; ++i)
-                    {
-                        pack_data[b + i] ^= pack_data[b + d_words + i];
-                    }
+                    uint64_t* top = pack_data + i;
+                    const uint64_t* bot = pack_data + i + d_words;
+                    for (size_t j = 0; j < d_words; ++j)
+                        top[j] ^= bot[j];
                 }
             }
             else
             {
-                const size_t d_regs = d_words / W_reg;
-                const size_t block_regs = d_regs << 1;
-                for (size_t b = 0; b < n_simd; b += block_regs)
+                for (size_t i = 0; i < n_words; i += (d_words << 1))
                 {
-                    for (size_t i = 0; i < d_regs; ++i)
+                    uint64_t* top = pack_data + i;
+                    const uint64_t* bot = pack_data + i + d_words;
+
+                    const size_t simd_chunks = d_words / W_reg;
+                    for (size_t c = 0; c < simd_chunks; ++c)
                     {
-                        uint64_t* ptr_top = pack_data + (b + i) * W_reg;
-                        uint64_t* ptr_bot = pack_data + (b + d_regs + i) * W_reg;
                         mipp::Reg<uint64_t> reg_top, reg_bot;
-                        reg_top.loadu(ptr_top);
-                        reg_bot.loadu(ptr_bot);
+                        reg_top.loadu(top + c * W_reg);
+                        reg_bot.loadu(bot + c * W_reg);
                         reg_top ^= reg_bot;
-                        reg_top.storeu(ptr_top);
+                        reg_top.storeu(top + c * W_reg);
                     }
                 }
             }
