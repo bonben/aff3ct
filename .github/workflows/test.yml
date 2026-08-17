@@ -73,9 +73,14 @@ jobs:
   # ============================================================================
   # SCHEDULE GATE (skip the weekly thorough run if develop hasn't changed)
   # ============================================================================
+  # This gate only reads the git history, so it runs on a GitHub-hosted runner
+  # on purpose: our self-hosted workspaces are shared with the containerized
+  # jobs below, which run as root and leave root-owned build artifacts behind.
+  # A non-container job there runs as the unprivileged runner user and its
+  # checkout fails on those leftovers.
   check-schedule:
     if: github.event_name == 'schedule'
-    runs-on: [self-hosted, imt-atlantique]
+    runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
