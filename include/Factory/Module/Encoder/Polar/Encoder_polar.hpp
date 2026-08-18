@@ -24,7 +24,8 @@ class Encoder_polar : public Encoder
 {
   public:
     // ----------------------------------------------------------------------------------------------------- PARAMETERS
-    // empty
+    // optional parameters
+    std::string implem = "FAST";
 
     // -------------------------------------------------------------------------------------------------------- METHODS
     explicit Encoder_polar(const std::string& p = Encoder_polar_prefix);

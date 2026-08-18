@@ -2,6 +2,8 @@
 
 #include "Factory/Module/Encoder/Polar/Encoder_polar.hpp"
 #include "Module/Encoder/Polar/Encoder_polar.hpp"
+#include "Module/Encoder/Polar/Encoder_polar_bitpacked.hpp"
+#include "Module/Encoder/Polar/Encoder_polar_bitpacked_sys.hpp"
 #include "Module/Encoder/Polar/Encoder_polar_sys.hpp"
 #include "Tools/Documentation/documentation.h"
 
@@ -33,6 +35,8 @@ Encoder_polar ::get_description(cli::Argument_map_info& args) const
 
     cli::add_options(args.at({ p + "-type" }), 0, "POLAR");
 
+    tools::add_arg(args, p, class_name + "p+implem", cli::Text(cli::Example_set("FAST", "NAIVE")));
+
     tools::add_arg(args, p, class_name + "p+no-sys", cli::None());
 }
 
@@ -40,22 +44,43 @@ void
 Encoder_polar ::store(const cli::Argument_map_value& vals)
 {
     Encoder::store(vals);
+
+    auto p = this->get_prefix();
+
+    if (vals.exist({ p + "-implem" })) this->implem = vals.at({ p + "-implem" });
 }
 
 void
 Encoder_polar ::get_headers(std::map<std::string, tools::header_list>& headers, const bool full) const
 {
     Encoder::get_headers(headers, full);
+
+    auto p = this->get_prefix();
+
+    headers[p].push_back(std::make_pair("Implementation", this->implem));
 }
 
 template<typename B>
 module::Encoder_polar<B>*
 Encoder_polar ::build(const std::vector<bool>& frozen_bits) const
 {
-    if (this->type == "POLAR" && !this->systematic)
-        return new module::Encoder_polar<B>(this->K, this->N_cw, frozen_bits);
-    if (this->type == "POLAR" && this->systematic)
-        return new module::Encoder_polar_sys<B>(this->K, this->N_cw, frozen_bits);
+    if (this->type == "POLAR")
+    {
+        if (this->implem == "FAST")
+        {
+            if (this->systematic)
+                return new module::Encoder_polar_bitpacked_sys<B>(this->K, this->N_cw, frozen_bits);
+            else
+                return new module::Encoder_polar_bitpacked<B>(this->K, this->N_cw, frozen_bits);
+        }
+        else if (this->implem == "NAIVE")
+        {
+            if (this->systematic)
+                return new module::Encoder_polar_sys<B>(this->K, this->N_cw, frozen_bits);
+            else
+                return new module::Encoder_polar<B>(this->K, this->N_cw, frozen_bits);
+        }
+    }
 
     throw spu::tools::cannot_allocate(__FILE__, __LINE__, __func__);
 }
