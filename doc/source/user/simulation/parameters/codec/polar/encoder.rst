@@ -11,31 +11,56 @@ Polar Encoder parameters
    :Type: text
    :Allowed values: ``POLAR`` ``AZCW`` ``COSET`` ``USER``
    :Default: ``POLAR``
-   :Examples: ``--enc-type AZCW``
+   :Examples: ``--enc-type POLAR``
 
 |factory::Encoder::p+type|
 
 Description of the allowed values:
 
-+-----------+------------------------+
-| Value     | Description            |
-+===========+========================+
-| ``POLAR`` | |enc-type_descr_polar| |
-+-----------+------------------------+
-| ``AZCW``  | |enc-type_descr_azcw|  |
-+-----------+------------------------+
-| ``COSET`` | |enc-type_descr_coset| |
-+-----------+------------------------+
-| ``USER``  | |enc-type_descr_user|  |
-+-----------+------------------------+
++-----------+----------------------------------+
+| Value     | Description                      |
++===========+==================================+
+| ``POLAR`` | |enc-type_descr_polar|           |
++-----------+----------------------------------+
+| ``AZCW``  | |enc-type_descr_azcw|            |
++-----------+----------------------------------+
+| ``COSET`` | |enc-type_descr_coset|           |
++-----------+----------------------------------+
+| ``USER``  | |enc-type_descr_user|            |
++-----------+----------------------------------+
 
-.. |enc-type_descr_polar| replace:: Select the standard Polar encoder.
+.. |enc-type_descr_polar| replace:: Select the Polar encoder.
 .. |enc-type_descr_azcw| replace:: See the common :ref:`enc-common-enc-type`
    parameter.
 .. |enc-type_descr_coset| replace:: See the common :ref:`enc-common-enc-type`
    parameter.
 .. |enc-type_descr_user| replace:: See the common :ref:`enc-common-enc-type`
    parameter.
+
+.. _enc-polar-enc-implem:
+
+``--enc-implem``
+""""""""""""""""
+
+   :Type: text
+   :Allowed values: ``FAST`` ``NAIVE``
+   :Default: ``FAST``
+   :Examples: ``--enc-implem FAST``
+
+|factory::Encoder_polar::p+implem|
+
+Description of the allowed values:
+
++-----------+------------------------------------------------------------------+
+| Value     | Description                                                      |
++===========+==================================================================+
+| ``FAST``  | |enc-implem_descr_fast|                                          |
++-----------+------------------------------------------------------------------+
+| ``NAIVE`` | |enc-implem_descr_naive|                                         |
++-----------+------------------------------------------------------------------+
+
+.. |enc-implem_descr_fast| replace:: Select the fast SIMD bitpacked Polar encoder with tree pruning (automatically falls back to scalar implementation for :math:`N < 64`).
+.. |enc-implem_descr_naive| replace:: Select the naive bit-by-bit Polar encoder.
 
 .. _enc-polar-enc-no-sys:
 
