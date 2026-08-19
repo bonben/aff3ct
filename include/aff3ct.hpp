@@ -912,6 +912,9 @@
 #ifndef LC_SORTER_SIMD_HPP
 #include <Tools/Algo/Sort/LC_sorter_simd.hpp>
 #endif
+#ifndef SORTING_NETWORK_HPP
+#include <Tools/Algo/Sort/Sorting_network.hpp>
+#endif
 #ifndef BINARY_NODE_HPP_
 #include <Tools/Algo/Tree/Binary/Binary_node.hpp>
 #endif

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Tools/Algo/Sort/LC_sorter.hpp"
+#include "Tools/Algo/Sort/Sorting_network.hpp"
 #include "Tools/Code/Polar/API/API_polar_dynamic_seq.hpp"
 #include "Tools/Code/Polar/Pattern_polar_parser.hpp"
 #include "Tools/Code/Polar/Patterns/Pattern_polar_i.hpp"
@@ -57,6 +58,7 @@ class Decoder_polar_SCL_fast_sys
     std::vector<std::vector<int>> path_2_array; // give array used by a path
 
     tools::LC_sorter<R> sorter;
+    tools::Sorting_network<R> sorter_net;
     //	tools::LC_sorter_simd<R>          sorter_simd;
     std::vector<int> best_idx;
     mipp::vector<R> l_tmp;
@@ -87,6 +89,15 @@ class Decoder_polar_SCL_fast_sys
     virtual void _store_cw(B* V_N) const;
 
     inline void recursive_decode(const R* Y_N, const int off_l, const int off_s, const int rev_depth, int& node_id);
+
+    /*!
+     * \brief Fill best_idx with the indexes of the K least reliable LLRs (smallest
+     *        absolute value) among n_elmts, using a compile time bitonic network.
+     * \return false if n_elmts is not one of the supported sizes, in which case
+     *         the caller must fall back to the generic sorter.
+     */
+    template<int K>
+    inline bool select_least_reliable(const R* llrs, const int n_elmts);
 
     inline void update_paths_r0(const int rev_depth, const int off_l, const int off_s, const int n_elmts);
     inline void update_paths_r1(const int rev_depth, const int off_l, const int off_s, const int n_elmts);
