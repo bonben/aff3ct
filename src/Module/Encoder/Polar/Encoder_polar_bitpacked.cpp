@@ -218,6 +218,7 @@ Encoder_polar_bitpacked<B>::pack(const B* bits_in, uint64_t* pack_out, const siz
 {
     constexpr int W = mipp::N<B>();
 
+#if defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX2__) || defined(__ARM_NEON) || defined(__ARM_NEON__)
     if (W > 1 && sizeof(B) < 8 && W <= static_cast<int>(8 * sizeof(B)))
     {
         B weights_arr[W];
@@ -242,26 +243,26 @@ Encoder_polar_bitpacked<B>::pack(const B* bits_in, uint64_t* pack_out, const siz
             }
             pack_out[w] = word_val;
         }
+        return;
     }
-    else
+#endif
+
+    const size_t n_words = N >> 6;
+    for (size_t w = 0; w < n_words; ++w)
     {
-        const size_t n_words = N >> 6;
-        for (size_t w = 0; w < n_words; ++w)
+        const B* in = bits_in + (w << 6);
+        uint64_t symb = 0;
+        for (int b = 0; b < 8; ++b)
         {
-            const B* in = bits_in + (w << 6);
-            uint64_t symb = 0;
-            for (int b = 0; b < 8; ++b)
-            {
-                const B* p = in + (b << 3);
-                uint64_t byte_val =
-                  ((static_cast<uint64_t>(p[0]) & 1ULL) << 7) | ((static_cast<uint64_t>(p[1]) & 1ULL) << 6) |
-                  ((static_cast<uint64_t>(p[2]) & 1ULL) << 5) | ((static_cast<uint64_t>(p[3]) & 1ULL) << 4) |
-                  ((static_cast<uint64_t>(p[4]) & 1ULL) << 3) | ((static_cast<uint64_t>(p[5]) & 1ULL) << 2) |
-                  ((static_cast<uint64_t>(p[6]) & 1ULL) << 1) | ((static_cast<uint64_t>(p[7]) & 1ULL) << 0);
-                symb = (symb << 8) | byte_val;
-            }
-            pack_out[w] = symb;
+            const B* p = in + (b << 3);
+            uint64_t byte_val =
+              ((static_cast<uint64_t>(p[0]) & 1ULL) << 7) | ((static_cast<uint64_t>(p[1]) & 1ULL) << 6) |
+              ((static_cast<uint64_t>(p[2]) & 1ULL) << 5) | ((static_cast<uint64_t>(p[3]) & 1ULL) << 4) |
+              ((static_cast<uint64_t>(p[4]) & 1ULL) << 3) | ((static_cast<uint64_t>(p[5]) & 1ULL) << 2) |
+              ((static_cast<uint64_t>(p[6]) & 1ULL) << 1) | ((static_cast<uint64_t>(p[7]) & 1ULL) << 0);
+            symb = (symb << 8) | byte_val;
         }
+        pack_out[w] = symb;
     }
 }
 
