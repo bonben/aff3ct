@@ -23,15 +23,36 @@ namespace tools
 // Key-value packing helpers
 // ============================================================================
 template<typename T, bool IsFloat = std::is_floating_point<T>::value>
+struct safe_abs;
+
+template<typename T>
+struct safe_abs<T, true>
+{
+    static inline T apply(T val) { return val < static_cast<T>(0) ? -val : val; }
+};
+
+template<typename T>
+struct safe_abs<T, false>
+{
+    static inline T apply(T val)
+    {
+        return val < 0 ? (val == std::numeric_limits<T>::min() ? std::numeric_limits<T>::max() : static_cast<T>(-val))
+                       : val;
+    }
+};
+
+template<typename T, bool IsFloat = std::is_floating_point<T>::value>
 struct kv_packer;
 
+// Fast packing for IEEE 754 non-negative floats (order preserved as uint32)
 template<typename T>
 struct kv_packer<T, true>
 {
     static inline uint64_t pack(T value, int32_t index)
     {
         uint32_t bits;
-        std::memcpy(&bits, &value, sizeof(float));
+        float v = static_cast<float>(value);
+        std::memcpy(&bits, &v, sizeof(float));
         return (static_cast<uint64_t>(bits) << 32) | static_cast<uint32_t>(index);
     }
 };
@@ -233,7 +254,7 @@ class Sorting_network
     inline void partial_sort_abs_template(const T* values, std::vector<int>& pos)
     {
         for (int i = 0; i < N; i++)
-            kv[i] = kv_packer<T>::pack(values[i] < 0 ? -values[i] : values[i], i);
+            kv[i] = kv_packer<T>::pack(safe_abs<T>::apply(values[i]), i);
 
         bitonic::Partial_Sort<N, K>::apply(kv);
 
