@@ -1,0 +1,62 @@
+diff --git a/include/Runtime/Sequence/Sequence.hxx b/include/Runtime/Sequence/Sequence.hxx
+index 2255ce8..0fed4fc 100644
+--- a/include/Runtime/Sequence/Sequence.hxx
++++ b/include/Runtime/Sequence/Sequence.hxx
+@@ -265,6 +265,7 @@ Sequence::_init(tools::Digraph_node<runtime::Sub_sequence>* root)
+     this->sequences[0] = root;
+ 
+     std::set<module::Module*> modules_set;
++    std::vector<module::Module*> modules_order; // order of discovery in the graph (independent of heap addresses)
+     std::function<void(const tools::Digraph_node<runtime::Sub_sequence>*,
+                        std::vector<const tools::Digraph_node<runtime::Sub_sequence>*>&)>
+       collect_modules_list;
+@@ -277,7 +278,7 @@ Sequence::_init(tools::Digraph_node<runtime::Sub_sequence>* root)
+             already_parsed_nodes.push_back(node);
+             if (node->get_c())
+                 for (auto ta : node->get_c()->tasks)
+-                    modules_set.insert(&ta->get_module());
++                    if (modules_set.insert(&ta->get_module()).second) modules_order.push_back(&ta->get_module());
+             for (auto c : node->get_children())
+                 collect_modules_list(c, already_parsed_nodes);
+         }
+@@ -285,7 +286,7 @@ Sequence::_init(tools::Digraph_node<runtime::Sub_sequence>* root)
+     std::vector<const tools::Digraph_node<runtime::Sub_sequence>*> already_parsed_nodes3;
+     collect_modules_list(root, already_parsed_nodes3);
+ 
+-    for (auto m : modules_set)
++    for (auto m : modules_order)
+         this->all_modules[0].push_back(m);
+ 
+     this->replicate<runtime::Sub_sequence, module::Module>(root);
+diff --git a/src/Runtime/Sequence/Sequence.cpp b/src/Runtime/Sequence/Sequence.cpp
+index df2d73f..1b78473 100644
+--- a/src/Runtime/Sequence/Sequence.cpp
++++ b/src/Runtime/Sequence/Sequence.cpp
+@@ -1467,6 +1467,7 @@ void
+ Sequence::replicate(const tools::Digraph_node<SS>* sequence)
+ {
+     std::set<MO*> modules_set;
++    std::vector<MO*> modules_order; // order of discovery in the graph (does not depend on the heap addresses)
+     std::vector<const runtime::Task*> tsks_vec; // get a vector of tasks included in the tasks graph
+     std::function<void(const tools::Digraph_node<SS>*, std::vector<const tools::Digraph_node<SS>*>&)>
+       collect_modules_list;
+@@ -1480,7 +1481,7 @@ Sequence::replicate(const tools::Digraph_node<SS>* sequence)
+             tsks_vec.insert(tsks_vec.end(), node->get_c()->tasks.begin(), node->get_c()->tasks.end());
+             if (node->get_c())
+                 for (auto ta : node->get_c()->tasks)
+-                    modules_set.insert(&ta->get_module());
++                    if (modules_set.insert(&ta->get_module()).second) modules_order.push_back(&ta->get_module());
+             for (auto c : node->get_children())
+                 collect_modules_list(c, already_parsed_nodes);
+         }
+@@ -1500,9 +1501,7 @@ Sequence::replicate(const tools::Digraph_node<SS>* sequence)
+                 throw tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+             }
+ 
+-    std::vector<MO*> modules_vec;
+-    for (auto m : modules_set)
+-        modules_vec.push_back(m);
++    std::vector<MO*> modules_vec = modules_order;
+ 
+     // clone the modules
+     for (size_t tid = 0; tid < this->n_threads - (this->tasks_inplace ? 1 : 0); tid++)
