@@ -189,8 +189,10 @@ read_arguments(const int argc, const char** argv, factory::Launcher& params)
     return (cmd_error.size() || display_help) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+// The simulator entry point. In the SIMD dispatch mode (AFF3CT_SIMD_PLUGIN), this function is called by the SIMD
+// neutral launcher through the 'aff3ct_plugin_sim_main' entry of the plugin, and no 'main' is defined here.
 int
-main(int argc, char** argv)
+aff3ct_sim_main(int argc, char** argv)
 {
     int exit_code = EXIT_SUCCESS;
 #ifdef AFF3CT_MPI
@@ -242,3 +244,11 @@ main(int argc, char** argv)
 
     return exit_code;
 }
+
+#ifndef AFF3CT_SIMD_PLUGIN
+int
+main(int argc, char** argv)
+{
+    return aff3ct_sim_main(argc, argv);
+}
+#endif
