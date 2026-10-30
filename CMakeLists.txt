@@ -25,6 +25,38 @@ option(AFF3CT_POLAR_BIT_PACKING  "Enable the bit packing technique for Polar cod
 option(AFF3CT_POLAR_BOUNDS       "Enable the use of the external Tal & Vardy Polar best channels generator" OFF)
 option(AFF3CT_OVERRIDE_VERSION   "Compile without .git directory, provided a version and hash"              OFF)
 option(AFF3CT_INCLUDE_SPU_LIB    "Include the StreamPU library inside the AFF3CT library"                   ON )
+option(AFF3CT_SIMD_DISPATCH      "Compile one AFF3CT plugin per SIMD instruction set and a SIMD neutral launcher/host library (the best plugin is chosen at runtime)" OFF)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    set(AFF3CT_SIMD_VARIANTS_DEFAULT "neon")
+else()
+    set(AFF3CT_SIMD_VARIANTS_DEFAULT "sse4.2;avx2;avx512")
+endif()
+set(AFF3CT_SIMD_VARIANTS "${AFF3CT_SIMD_VARIANTS_DEFAULT}" CACHE STRING
+    "SIMD variants compiled when AFF3CT_SIMD_DISPATCH=ON (among 'sse2', 'sse4.2', 'avx2', 'avx512' and 'neon')")
+option(AFF3CT_SIMD_STRICT_FP "In the SIMD dispatch mode, forbid the contraction of the floating-point operations (FMA) so that all the variants give bit-exact results" ON)
+
+if(AFF3CT_SIMD_DISPATCH)
+    if(NOT AFF3CT_INCLUDE_SPU_LIB)
+        message(FATAL_ERROR "AFF3CT_SIMD_DISPATCH=ON requires AFF3CT_INCLUDE_SPU_LIB=ON (StreamPU is compiled as a "
+                            "single shared library common to the host and to the plugins).")
+    endif()
+    if(AFF3CT_MPI)
+        message(FATAL_ERROR "AFF3CT_SIMD_DISPATCH=ON is not compatible with AFF3CT_MPI=ON.")
+    endif()
+    if("${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}" MATCHES "(-march=native|-march=x86-64-v|-mavx|-msse4|-mfma|-mcpu=|/arch:AVX)")
+        message(FATAL_ERROR "AFF3CT_SIMD_DISPATCH=ON: do not put SIMD options in CMAKE_CXX_FLAGS (they would be "
+                            "applied to the SIMD neutral host, launcher and StreamPU), the options of each variant "
+                            "are set by AFF3CT_SIMD_VARIANTS.")
+    endif()
+    # the launcher replaces the executable, the plugins replace the libraries
+    set(AFF3CT_DISPATCH_LAUNCHER ${AFF3CT_COMPILE_EXE})
+    set(AFF3CT_COMPILE_EXE OFF)
+    set(AFF3CT_COMPILE_STATIC_LIB OFF)
+    set(AFF3CT_COMPILE_SHARED_LIB OFF)
+    # StreamPU has no SIMD code: one shared library compiled with the base options, common to all the plugins
+    set(SPU_COMPILE_SHARED_LIB ON CACHE BOOL "Compile the shared library" FORCE)
+endif()
 
 if (AFF3CT_COMPILE_EXE OR AFF3CT_COMPILE_STATIC_LIB OR AFF3CT_COMPILE_SHARED_LIB)
     set(AFF3CT_COMPILE_OBJ ON)
@@ -250,6 +282,146 @@ if(AFF3CT_COMPILE_STATIC_LIB)
     message(STATUS "AFF3CT - Compile: static library")
 endif(AFF3CT_COMPILE_STATIC_LIB)
 
+# SIMD dispatch: one plugin per SIMD variant + a SIMD neutral host library, launcher and test
+set(AFF3CT_DISPATCH_OBJ_TARGETS "")
+set(AFF3CT_DISPATCH_PLUGIN_TARGETS "")
+if(AFF3CT_SIMD_DISPATCH)
+    if(APPLE)
+        set(_origin "@loader_path")
+    else()
+        set(_origin "$ORIGIN")
+    endif()
+    foreach(_variant IN LISTS AFF3CT_SIMD_VARIANTS)
+        if(MSVC)
+            if(_variant STREQUAL "avx2")
+                set(_flags "/arch:AVX2")
+            elseif(_variant STREQUAL "avx512")
+                set(_flags "/arch:AVX512")
+            elseif(_variant STREQUAL "sse2" OR _variant STREQUAL "sse4.2")
+                set(_flags "")
+            else()
+                message(FATAL_ERROR "AFF3CT - Unknown SIMD variant '${_variant}' for MSVC.")
+            endif()
+        else()
+            # the x86-64 micro-architecture levels: the host checks the same levels at runtime ('-march=x86-64-vN'
+            # needs GCC >= 11 or Clang >= 12, the same features are listed explicitly for the older compilers)
+            if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11) OR
+               (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12))
+                set(_v2 "-msse4.2 -mpopcnt")
+                set(_v3 "${_v2} -mavx2 -mfma -mbmi -mbmi2 -mlzcnt -mmovbe -mf16c")
+                set(_v4 "${_v3} -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl")
+            else()
+                set(_v2 "-march=x86-64-v2")
+                set(_v3 "-march=x86-64-v3")
+                set(_v4 "-march=x86-64-v4")
+            endif()
+            if(_variant STREQUAL "sse2")
+                set(_flags "")
+            elseif(_variant STREQUAL "sse4.2")
+                set(_flags "${_v2}")
+            elseif(_variant STREQUAL "avx2")
+                set(_flags "${_v3}")
+            elseif(_variant STREQUAL "avx512")
+                set(_flags "${_v4}")
+            elseif(_variant STREQUAL "neon")
+                set(_flags "") # NEON is mandatory on AArch64
+            else()
+                message(FATAL_ERROR "AFF3CT - Unknown SIMD variant '${_variant}' (expected 'sse2', 'sse4.2', "
+                                    "'avx2', 'avx512' or 'neon').")
+            endif()
+        endif()
+
+        # a small translation unit per variant gives the variant name and the version to the plugin entry points
+        # (keeping these definitions out of the other files avoids recompiling everything when the version changes)
+        set(_entry "${CMAKE_CURRENT_BINARY_DIR}/dispatch/plugin_${_variant}.cpp")
+        file(WRITE "${_entry}.tmp"
+             "#define AFF3CT_SIMD_VARIANT \"${_variant}\"\n"
+             "#define AFF3CT_DISPATCH_VERSION \"${AFF3CT_VERSION_FULL}\"\n"
+             "#include \"${CMAKE_CURRENT_SOURCE_DIR}/dispatch/src/plugin/plugin.cpp\"\n")
+        configure_file("${_entry}.tmp" "${_entry}" COPYONLY)
+
+        add_library(aff3ct-obj-${_variant} OBJECT ${source_files} "${_entry}")
+        set_target_properties(aff3ct-obj-${_variant} PROPERTIES
+                              POSITION_INDEPENDENT_CODE ON
+                              CXX_VISIBILITY_PRESET hidden
+                              VISIBILITY_INLINES_HIDDEN ON)
+        if(AFF3CT_SIMD_STRICT_FP AND NOT MSVC)
+            # without it, the compiler fuses 'a * b + c' in an FMA on the AVX2 and AVX-512 variants only, and the
+            # float results (noise, LLRs) differ slightly from the SSE4.2 variant
+            set(_flags "${_flags} -ffp-contract=off")
+            string(STRIP "${_flags}" _flags)
+        endif()
+        if(NOT "${_flags}" STREQUAL "")
+            separate_arguments(_flags_list UNIX_COMMAND "${_flags}")
+            target_compile_options(aff3ct-obj-${_variant} PRIVATE ${_flags_list})
+        endif()
+        target_compile_definitions(aff3ct-obj-${_variant} PRIVATE AFF3CT_SIMD_PLUGIN)
+        target_include_directories(aff3ct-obj-${_variant} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/include")
+        target_link_libraries(aff3ct-obj-${_variant} PUBLIC spu-shared-lib)
+
+        add_library(aff3ct-plugin-${_variant} MODULE $<TARGET_OBJECTS:aff3ct-obj-${_variant}> $<TARGET_OBJECTS:cli-obj>)
+        set_target_properties(aff3ct-plugin-${_variant} PROPERTIES
+                              OUTPUT_NAME aff3ct-${AFF3CT_VERSION_FULL}-${_variant}
+                              POSITION_INDEPENDENT_CODE ON
+                              INSTALL_RPATH "${_origin}")
+        target_link_libraries(aff3ct-plugin-${_variant} PRIVATE spu-shared-lib)
+        if(APPLE)
+            target_link_libraries(aff3ct-plugin-${_variant} PRIVATE
+                                  "-Wl,-exported_symbol,_aff3ct_plugin_*")
+        elseif(UNIX)
+            # export only the 'aff3ct_plugin_*' entry points: the plugin keeps its own copies of MIPP, of the STL
+            # templates and of everything else it instantiates
+            target_link_libraries(aff3ct-plugin-${_variant} PRIVATE
+                                  "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/dispatch/plugin.map"
+                                  "-Wl,--exclude-libs,ALL"
+                                  "-Wl,-z,defs")
+            set_target_properties(aff3ct-plugin-${_variant} PROPERTIES
+                                  LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/plugin.map")
+        endif()
+
+        list(APPEND AFF3CT_DISPATCH_OBJ_TARGETS aff3ct-obj-${_variant})
+        list(APPEND AFF3CT_DISPATCH_PLUGIN_TARGETS aff3ct-plugin-${_variant})
+        message(STATUS "AFF3CT - Compile: SIMD plugin '${_variant}' (flags: '${_flags}')")
+    endforeach()
+
+    # host library (SIMD neutral): CPU detection, plugin loading and C++ API
+    add_library(aff3ct-dispatch SHARED "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/src/host/dispatch.cpp")
+    set_target_properties(aff3ct-dispatch PROPERTIES
+                          OUTPUT_NAME aff3ct-dispatch-${AFF3CT_VERSION_FULL}
+                          POSITION_INDEPENDENT_CODE ON
+                          CXX_VISIBILITY_PRESET hidden
+                          VISIBILITY_INLINES_HIDDEN ON
+                          INSTALL_RPATH "${_origin}")
+    target_compile_definitions(aff3ct-dispatch PRIVATE AFF3CT_DISPATCH_BUILD
+                               AFF3CT_DISPATCH_VERSION="${AFF3CT_VERSION_FULL}")
+    target_include_directories(aff3ct-dispatch PUBLIC
+                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/dispatch/include>
+                               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/dispatch>)
+    target_link_libraries(aff3ct-dispatch PUBLIC spu-shared-lib PRIVATE ${CMAKE_DL_LIBS})
+    # the plugins are loaded at runtime, but they have to be built with the host
+    add_dependencies(aff3ct-dispatch ${AFF3CT_DISPATCH_PLUGIN_TARGETS})
+    message(STATUS "AFF3CT - Compile: SIMD dispatch host library (variants: ${AFF3CT_SIMD_VARIANTS})")
+
+    # simulator launcher (SIMD neutral)
+    if(AFF3CT_DISPATCH_LAUNCHER)
+        add_executable(aff3ct-bin "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/src/launcher/main.cpp")
+        set_target_properties(aff3ct-bin PROPERTIES
+                              OUTPUT_NAME aff3ct-${AFF3CT_VERSION_FULL}
+                              POSITION_INDEPENDENT_CODE ON
+                              INSTALL_RPATH "${_origin}/../${CMAKE_INSTALL_LIBDIR}")
+        target_link_libraries(aff3ct-bin PRIVATE aff3ct-dispatch)
+        if(UNIX)
+            configure_file("${CMAKE_CURRENT_SOURCE_DIR}/scripts/aff3ct" "bin/aff3ct" @ONLY)
+        endif()
+        message(STATUS "AFF3CT - Compile: SIMD neutral launcher")
+    endif()
+
+    # test of the SIMD neutral API (no SIMD option, no MIPP)
+    add_executable(aff3ct-dispatch-test-turbo "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/tests/turbo_roundtrip.cpp")
+    set_target_properties(aff3ct-dispatch-test-turbo PROPERTIES OUTPUT_NAME test-dispatch-turbo)
+    target_link_libraries(aff3ct-dispatch-test-turbo PRIVATE aff3ct-dispatch)
+endif()
+
 # PPA uploading
 if (AFF3CT_UPLOAD_PPA)
     message(STATUS "AFF3CT - PPA uploading: on")
@@ -272,6 +444,9 @@ macro(aff3ct_target_compile_definitions privacy def)
     if(AFF3CT_COMPILE_STATIC_LIB)
         target_compile_definitions(aff3ct-static-lib ${privacy} $<BUILD_INTERFACE:${def}> $<INSTALL_INTERFACE:${def}>)
     endif()
+    foreach(_target IN LISTS AFF3CT_DISPATCH_OBJ_TARGETS)
+        target_compile_definitions(${_target} ${privacy} $<BUILD_INTERFACE:${def}> $<INSTALL_INTERFACE:${def}>)
+    endforeach()
 endmacro()
 
 # by system
@@ -360,6 +535,11 @@ macro(aff3ct_target_include_directories privacy dir_build dir_install)
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${dir_build}/>
                                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/${dir_install}>)
     endif()
+    foreach(_target IN LISTS AFF3CT_DISPATCH_OBJ_TARGETS)
+        target_include_directories(${_target} ${privacy}
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${dir_build}/>
+                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/${dir_install}>)
+    endforeach()
 endmacro()
 
 macro(aff3ct_target_include_directories2 privacy dir)
@@ -375,6 +555,9 @@ macro(aff3ct_target_include_directories2 privacy dir)
     if(AFF3CT_COMPILE_STATIC_LIB)
         target_include_directories(aff3ct-static-lib ${privacy} $<BUILD_INTERFACE:${dir}> $<INSTALL_INTERFACE:${dir}>)
     endif()
+    foreach(_target IN LISTS AFF3CT_DISPATCH_OBJ_TARGETS)
+        target_include_directories(${_target} ${privacy} $<BUILD_INTERFACE:${dir}> $<INSTALL_INTERFACE:${dir}>)
+    endforeach()
 endmacro()
 
 # AFF3CT headers
@@ -431,6 +614,9 @@ macro(aff3ct_target_link_libraries privacy lib)
     if(AFF3CT_COMPILE_STATIC_LIB)
         target_link_libraries(aff3ct-static-lib ${privacy} ${lib})
     endif(AFF3CT_COMPILE_STATIC_LIB)
+    foreach(_target IN LISTS AFF3CT_DISPATCH_PLUGIN_TARGETS)
+        target_link_libraries(${_target} PRIVATE ${lib})
+    endforeach()
 endmacro()
 
 # cpptrace
@@ -592,6 +778,31 @@ if(AFF3CT_COMPILE_EXE)
                 PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
                 COMPONENT simulator)
     endif()
+endif()
+if(AFF3CT_SIMD_DISPATCH)
+    if(AFF3CT_DISPATCH_LAUNCHER)
+        install(TARGETS aff3ct-bin
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/
+                COMPONENT simulator)
+        if(UNIX)
+            install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/aff3ct" DESTINATION ${CMAKE_INSTALL_BINDIR}/
+                    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+                    COMPONENT simulator)
+        endif()
+    endif()
+    # the plugins are installed next to the host library (where the host looks for them)
+    install(TARGETS aff3ct-dispatch ${AFF3CT_DISPATCH_PLUGIN_TARGETS}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+            COMPONENT library)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/include/aff3ct_dispatch.hpp"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/dispatch/include/aff3ct_plugin_abi.h"
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/dispatch
+            COMPONENT headers)
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/streampu/include/"
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aff3ct-${AFF3CT_VERSION_FULL}/streampu
+            COMPONENT headers
+            FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.hxx")
 endif()
 if(AFF3CT_COMPILE_SHARED_LIB)
     if(WIN32)

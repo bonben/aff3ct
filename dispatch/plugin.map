@@ -1,0 +1,6 @@
+{
+    global:
+        aff3ct_plugin_*;
+    local:
+        *;
+};
